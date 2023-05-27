@@ -1,6 +1,7 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Enums;
 using Helper;
 using Riptide;
 using Riptide.Utils;
@@ -11,6 +12,8 @@ namespace Manager
     public class NetworkManager : SingletonMonoBehavior<NetworkManager>
     {
         public Client Client { get; private set; }
+
+        private string _requestedUsername = string.Empty;
 
         protected override void Awake()
         {
@@ -24,6 +27,7 @@ namespace Manager
             
             Client = new Client();
             Client.ConnectionFailed += Client_ConnectionFailed;
+            Client.Connected += Client_Connected;
         }
 
         private void Client_ConnectionFailed(object o, ConnectionFailedEventArgs eventArgs)
@@ -31,9 +35,22 @@ namespace Manager
             EventManager.CallConnectFailed();
         }
 
+        private void Client_Connected(object o, EventArgs eventArgs)
+        {
+            SendUsername();
+        }
+
+        private void SendUsername()
+        {
+            var message = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.Username);
+            message.AddString(_requestedUsername);
+            Client.Send(message);
+        }
+
         public void Connect(string ip, string port, string username)
         {
             Client.Connect($"{ip}:{port}");
+            _requestedUsername = username;
         }
 
         private void FixedUpdate()
@@ -44,6 +61,8 @@ namespace Manager
         private void OnApplicationQuit()
         {
             Client.Disconnect();
+            Client.ConnectionFailed -= Client_ConnectionFailed;
+            Client.Connected -= Client_Connected;
         }
     }
 }
