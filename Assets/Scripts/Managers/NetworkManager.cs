@@ -6,6 +6,7 @@ using Helper;
 using Riptide;
 using Riptide.Utils;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 
 namespace Manager
 {
@@ -18,6 +19,7 @@ namespace Manager
         protected override void Awake()
         {
             base.Awake();
+            DontDestroyOnLoad(this);
             
 #if UNITY_EDITOR
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, true);
@@ -37,6 +39,7 @@ namespace Manager
 
         private void Client_Connected(object o, EventArgs eventArgs)
         {
+            SceneManager.LoadScene("Lobby");
             SendUsername();
         }
 
