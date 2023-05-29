@@ -18,4 +18,11 @@ public static class EventManager
     {
         ConnectSuccess?.Invoke();
     }
+
+    public static Action<ushort> TeamChanged;
+
+    public static void CallTeamChanged(ushort playerId)
+    {
+        TeamChanged?.Invoke(playerId);
+    }
 }

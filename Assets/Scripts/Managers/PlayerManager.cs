@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Assets;
 using Enums;
 using Helper;
@@ -28,6 +29,10 @@ namespace Managers
             var username = message.GetString();
 
             Instance.Spawn(playerId, username);
+        }
+        public Player.Player GetPlayer(ushort clientId)
+        {
+            return _players.First(pair => pair.Value.PlayerId == clientId).Value;
         }
 
         private void Spawn(ushort playerId, string username)
