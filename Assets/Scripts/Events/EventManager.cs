@@ -25,4 +25,10 @@ public static class EventManager
     {
         TeamChanged?.Invoke(playerId);
     }
+
+    public static Action<ushort> ClientDisconnected;
+    public static void CallClientDisconnected(ushort playerId)
+    {
+        ClientDisconnected?.Invoke(playerId);
+    }
 }

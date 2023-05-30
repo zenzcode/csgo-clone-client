@@ -30,6 +30,7 @@ namespace Manager
             Client = new Client();
             Client.ConnectionFailed += Client_ConnectionFailed;
             Client.Connected += Client_Connected;
+            Client.ClientDisconnected += Client_ClientDisconnected;
         }
 
         private void Client_ConnectionFailed(object o, ConnectionFailedEventArgs eventArgs)
@@ -66,6 +67,12 @@ namespace Manager
             Client.Disconnect();
             Client.ConnectionFailed -= Client_ConnectionFailed;
             Client.Connected -= Client_Connected;
+            Client.ClientDisconnected -= Client_ClientDisconnected;
+        }
+
+        private void Client_ClientDisconnected(object o, ClientDisconnectedEventArgs eventArgs)
+        {
+            EventManager.CallClientDisconnected(eventArgs.Id);
         }
     }
 }

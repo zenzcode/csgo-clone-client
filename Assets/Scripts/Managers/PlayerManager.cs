@@ -27,15 +27,65 @@ namespace Managers
         {
             var playerId = message.GetUShort();
             var username = message.GetString();
+            var isLeader = message.GetBool();
 
-            Instance.Spawn(playerId, username);
+            Instance.Spawn(playerId, username, isLeader);
         }
+
+        [MessageHandler((ushort)ServerToClientMessages.LeaderChanged)]
+        private static void LeaderChanged(Message message)
+        {
+            var previousLeader = message.GetUShort();
+            var newLeader = message.GetUShort();
+
+            Instance.UpdateLeader(previousLeader, newLeader);
+        }
+
+        private void OnEnable()
+        {
+            EventManager.ClientDisconnected += EventManager_ClientDisconnected;
+        }
+
+        private void OnDisable()
+        {
+            EventManager.ClientDisconnected -= EventManager_ClientDisconnected;
+        }
+
+        private void EventManager_ClientDisconnected(ushort leaverId)
+        {
+            if (!_players.ContainsKey(leaverId))
+            {
+                return;
+            }
+
+            Destroy(_players[leaverId].gameObject);
+            _players.Remove(leaverId);
+        }
+
+        private void UpdateLeader(ushort oldLeaderId, ushort newLeaderId)
+        {
+            Debug.Log($"Leader Update from {oldLeaderId} to {newLeaderId}");
+            if (!_players.TryGetValue(oldLeaderId, out var oldLeader))
+            {
+                return;
+            }
+
+            oldLeader.IsLeader = false;
+
+            if (!_players.TryGetValue(newLeaderId, out var newLeader))
+            {
+                return;
+            }
+
+            newLeader.IsLeader = true;
+        }
+
         public Player.Player GetPlayer(ushort clientId)
         {
-            return _players.First(pair => pair.Value.PlayerId == clientId).Value;
+            return _players.FirstOrDefault(pair => pair.Value.PlayerId == clientId).Value;
         }
 
-        private void Spawn(ushort playerId, string username)
+        private void Spawn(ushort playerId, string username, bool isLeader)
         {
             if (_players.ContainsKey(playerId))
             {
@@ -51,6 +101,7 @@ namespace Managers
 
             player.PlayerId = playerId;
             player.Username = username;
+            player.IsLeader = isLeader;
             player.IsLocal = playerId == NetworkManager.Instance.Client.Id;
             newPlayer.name = $"{username} ({playerId})";
 

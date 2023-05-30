@@ -11,5 +11,6 @@ namespace Player
         [HideInInspector] public string Username { get; set; }
         [HideInInspector] public Team Team { get; set; }
         [HideInInspector] public bool IsLocal { get; set; }
+        [HideInInspector] public bool IsLeader { get; set; }
     }
 }
