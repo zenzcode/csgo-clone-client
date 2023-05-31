@@ -3,6 +3,8 @@ using System.Collections.Generic;
 using Assets;
 using Enums;
 using Helper;
+using Manager;
+using Riptide;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -91,6 +93,17 @@ namespace Managers.UI.Lobby
         private void UpdateStartButtonVisibility()
         {
             _startButton.gameObject.SetActive(PlayerManager.Instance.GetLocalPlayer() == PlayerManager.Instance.GetCurrentLeader());
+        }
+
+        public void LeaveGame()
+        {
+            NetworkManager.Instance.Client.Disconnect();
+        }
+
+        public void SwitchTeam()
+        {
+            var message = Message.Create(MessageSendMode.Unreliable, (ushort)ClientToServerMessages.SwitchTeamRequest);
+            NetworkManager.Instance.Client.Send(message);
         }
     }
 }
