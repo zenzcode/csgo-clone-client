@@ -31,4 +31,18 @@ public static class EventManager
     {
         ClientDisconnected?.Invoke(playerId);
     }
+
+    public static Action LocalPlayerReceived;
+
+    public static void CallLocalPlayerReceived()
+    {
+        LocalPlayerReceived?.Invoke();
+    }
+
+    public static Action<ushort> LeaderChanged;
+
+    public static void CallLeaderChanged(ushort newLeaderId)
+    {
+        LeaderChanged?.Invoke(newLeaderId);
+    }
 }

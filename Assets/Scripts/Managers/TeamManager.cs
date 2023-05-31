@@ -12,6 +12,10 @@ namespace Managers
     public class TeamManager : SingletonMonoBehavior<TeamManager>
     {
         private Dictionary<Team, List<ushort>> _teamMembers;
+        [SerializeField] private Color _defenderColor;
+        [SerializeField] private Color _attackerColor;
+        [HideInInspector] public Color DefenderColor => _defenderColor;
+        [HideInInspector] public Color AttackerColor => _attackerColor;
 
         protected override void Awake()
         {
@@ -60,6 +64,7 @@ namespace Managers
             }
 
             _teamMembers[team].Add(playerId);
+            PlayerManager.Instance.GetPlayer(playerId).Team = team;
             EventManager.CallTeamChanged(playerId);
         }
 
@@ -78,6 +83,7 @@ namespace Managers
                     break;
                 case Team.None:
                     Instance.RemoveFromAllTeams(playerId);
+                    EventManager.CallTeamChanged(playerId);
                     break;
             }
         }

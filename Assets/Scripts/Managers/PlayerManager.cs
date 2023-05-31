@@ -65,24 +65,36 @@ namespace Managers
         private void UpdateLeader(ushort oldLeaderId, ushort newLeaderId)
         {
             Debug.Log($"Leader Update from {oldLeaderId} to {newLeaderId}");
-            if (!_players.TryGetValue(oldLeaderId, out var oldLeader))
-            {
-                return;
-            }
-
-            oldLeader.IsLeader = false;
-
             if (!_players.TryGetValue(newLeaderId, out var newLeader))
             {
                 return;
             }
 
             newLeader.IsLeader = true;
+
+            EventManager.CallLeaderChanged(newLeaderId);
+
+            if (!_players.TryGetValue(oldLeaderId, out var oldLeader))
+            {
+                return;
+            }
+
+            oldLeader.IsLeader = false;
         }
 
         public Player.Player GetPlayer(ushort clientId)
         {
             return _players.FirstOrDefault(pair => pair.Value.PlayerId == clientId).Value;
+        }
+
+        public Player.Player GetLocalPlayer()
+        {
+            return _players.FirstOrDefault(player => player.Value.IsLocal).Value;
+        }
+
+        public Player.Player GetCurrentLeader()
+        {
+            return _players.FirstOrDefault(player => player.Value.IsLeader).Value;
         }
 
         private void Spawn(ushort playerId, string username, bool isLeader)
@@ -104,6 +116,11 @@ namespace Managers
             player.IsLeader = isLeader;
             player.IsLocal = playerId == NetworkManager.Instance.Client.Id;
             newPlayer.name = $"{username} ({playerId})";
+
+            if (player.IsLocal)
+            {
+                EventManager.CallLocalPlayerReceived();
+            }
 
             _players.Add(playerId, player);
         }
