@@ -20,6 +20,7 @@ namespace Managers.UI.Lobby
         [SerializeField] private Button _startButton;
         [SerializeField] private Button _leaveButton;
         [SerializeField] private Button _switchTeamButton;
+        [SerializeField] private float _buttonDebounceTime = 3f;
 
         protected override void Awake()
         {
@@ -106,6 +107,13 @@ namespace Managers.UI.Lobby
         {
             var message = Message.Create(MessageSendMode.Unreliable, (ushort)ClientToServerMessages.SwitchTeamRequest);
             NetworkManager.Instance.Client.Send(message);
+            _switchTeamButton.enabled = false;
+            Invoke(nameof(ReenableSwitchButton), _buttonDebounceTime);
+        }
+
+        private void ReenableSwitchButton()
+        {
+            _switchTeamButton.enabled = true;
         }
     }
 }
