@@ -41,6 +41,11 @@ namespace Managers
             return Team.None;
         }
 
+        private int GetPlayerCount(Team team)
+        {
+            return _teamMembers[team]?.Count ?? 0;
+        }
+
         private void RemoveFromAllTeams(ushort clientId)
         {
             foreach (var team in _teamMembers.Keys)
@@ -68,6 +73,12 @@ namespace Managers
             EventManager.CallTeamChanged(playerId);
         }
 
+        private void PlayerLeft(ushort playerId)
+        {
+            RemoveFromAllTeams(playerId);
+            EventManager.CallTeamChanged(playerId);
+        }
+
         [MessageHandler((ushort) ServerToClientMessages.TeamSet)]
         private static void TeamSet(Message message)
         {
@@ -82,8 +93,7 @@ namespace Managers
                     Instance.AddToTeam(playerId, team);
                     break;
                 case Team.None:
-                    Instance.RemoveFromAllTeams(playerId);
-                    EventManager.CallTeamChanged(playerId);
+                    Instance.PlayerLeft(playerId);
                     break;
             }
         }

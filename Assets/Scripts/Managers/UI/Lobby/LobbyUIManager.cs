@@ -7,6 +7,7 @@ using Manager;
 using Riptide;
 using TMPro;
 using UnityEngine;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
 namespace Managers.UI.Lobby
@@ -98,6 +99,7 @@ namespace Managers.UI.Lobby
         public void LeaveGame()
         {
             NetworkManager.Instance.Client.Disconnect();
+            SceneManager.LoadScene("MainMenu");
         }
 
         public void SwitchTeam()
