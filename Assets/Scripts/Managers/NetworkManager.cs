@@ -16,6 +16,11 @@ namespace Manager
 
         private string _requestedUsername = string.Empty;
 
+        [SerializeField] [Range(1, 15)] private float _rttCheckupInterval = 5;
+
+        //RoundTripTime in MS
+        [HideInInspector] public float Rtt = 0;
+
         protected override void Awake()
         {
             base.Awake();
@@ -42,6 +47,7 @@ namespace Manager
         {
             SceneManager.LoadScene("Lobby");
             SendUsername();
+            InvokeRepeating(nameof(SendRttRequest), 0, _rttCheckupInterval);
         }
 
         private void SendUsername()
@@ -49,6 +55,15 @@ namespace Manager
             var message = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.Username);
             message.AddString(_requestedUsername);
             Client.Send(message);
+        }
+
+        private void SendRttRequest()
+        {
+            //TODO: Add Tick later to recognize lost package.
+            var message = Message.Create(MessageSendMode.Unreliable, (ushort)ClientToServerMessages.RequestRTT);
+            message.AddFloat(Time.realtimeSinceStartup);
+            Client.Send(message);
+
         }
 
         public void Connect(string ip, string port, string username)
@@ -70,9 +85,23 @@ namespace Manager
             Client.ClientDisconnected -= Client_ClientDisconnected;
         }
 
+        private void SetRtt(float packageTime)
+        {
+            Rtt = (Time.realtimeSinceStartup - packageTime) * 1000;
+            Debug.Log($"RTT IS {Rtt} ms");
+        }
+
         private void Client_ClientDisconnected(object o, ClientDisconnectedEventArgs eventArgs)
         {
             EventManager.CallClientDisconnected(eventArgs.Id);
+            CancelInvoke(nameof(SendRttRequest));
+        }
+
+        [MessageHandler((ushort)ServerToClientMessages.RTTAnswer)]
+        private static void RttAnswer(Message message)
+        {
+            //TODO: Check for lost package later using tick
+            Instance.SetRtt(message.GetFloat());
         }
     }
 }
