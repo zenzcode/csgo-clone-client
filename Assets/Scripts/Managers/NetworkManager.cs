@@ -21,6 +21,8 @@ namespace Manager
         //RoundTripTime in MS
         [HideInInspector] public float Rtt = 0;
 
+        private float _clientServerDelta;
+
         protected override void Awake()
         {
             base.Awake();
@@ -85,10 +87,11 @@ namespace Manager
             Client.ClientDisconnected -= Client_ClientDisconnected;
         }
 
-        private void SetRtt(float packageTime)
+        private void SetRtt(float packageTime, float serverReceiveTime, float serverTimeSinceLoad)
         {
             Rtt = (Time.realtimeSinceStartup - packageTime) * 1000;
-            Debug.Log($"RTT IS {Rtt} ms");
+            var serverTime = serverReceiveTime + ((Rtt / 1000) * 0.5f);
+            _clientServerDelta = (Time.realtimeSinceStartup + (serverTimeSinceLoad - Time.timeSinceLevelLoad)) - serverTime;
         }
 
         private void Client_ClientDisconnected(object o, ClientDisconnectedEventArgs eventArgs)
@@ -101,7 +104,7 @@ namespace Manager
         private static void RttAnswer(Message message)
         {
             //TODO: Check for lost package later using tick
-            Instance.SetRtt(message.GetFloat());
+            Instance.SetRtt(message.GetFloat(), message.GetFloat(), message.GetFloat());
         }
     }
 }
