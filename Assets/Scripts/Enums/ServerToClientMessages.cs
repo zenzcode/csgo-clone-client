@@ -5,6 +5,7 @@ namespace Enums
         TeamSet = 0,
         SpawnClient,
         LeaderChanged,
-        RTTAnswer
+        RTTAnswer,
+        RTTUpdate
     }
 }

@@ -45,4 +45,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   _lobbyPlayer: {fileID: 64117309613953436, guid: 13676f0486b1c03448bc6217958886b9, type: 3}
-  _lobbyPlayerUIPrefab: {fileID: 4643686282475230578, guid: a715e28e37ef2494f912e2d4b35f2f8d, type: 3}
+  _lobbyPlayerUIPrefab: {fileID: 3359515154727260319, guid: 947a872f7cd9cad4c9369ba55af58804, type: 3}

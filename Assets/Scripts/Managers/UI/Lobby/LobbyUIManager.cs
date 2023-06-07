@@ -14,7 +14,7 @@ namespace Managers.UI.Lobby
 {
     public class LobbyUIManager : SingletonMonoBehavior<LobbyUIManager>
     {
-        private Dictionary<ushort, GameObject> _playerBars;
+        private Dictionary<ushort, PlayerBar> _playerBars;
         [SerializeField] private GameObject _defenderContainer;
         [SerializeField] private GameObject _attackerContainer;
         [SerializeField] private Button _startButton;
@@ -25,28 +25,29 @@ namespace Managers.UI.Lobby
         protected override void Awake()
         {
             base.Awake();
-            _playerBars = new Dictionary<ushort, GameObject>();
+            _playerBars = new Dictionary<ushort, PlayerBar>();
         }
 
         private void OnEnable()
         {
             EventManager.TeamChanged += EventManager_TeamChanged;
-            EventManager.LocalPlayerReceived += EventManager_LocalPlayerReceived;
             EventManager.LeaderChanged += EventManager_LeaderChanged;
+            EventManager.RttUpdated += EventManager_RttUpdated;
         }
 
         private void OnDisable()
         {
             EventManager.TeamChanged -= EventManager_TeamChanged;
-            EventManager.LocalPlayerReceived -= EventManager_LocalPlayerReceived;
             EventManager.LeaderChanged -= EventManager_LeaderChanged;
+            EventManager.RttUpdated -= EventManager_RttUpdated;
         }
 
         private void EventManager_TeamChanged(ushort playerId)
         {
             if (_playerBars.ContainsKey(playerId))
             {
-                Destroy(_playerBars[playerId]);
+                Destroy(_playerBars[playerId].gameObject);
+                _playerBars[playerId].KickButton.onClick.RemoveAllListeners();
                 _playerBars.Remove(playerId);
             }
 
@@ -60,7 +61,6 @@ namespace Managers.UI.Lobby
             var newPlayerBar = Instantiate(AssetManager.Instance.LobbyPlayerUIPrefab,
                 team == Team.Attacker ? _attackerContainer.transform : _defenderContainer.transform);
 
-
             if (!newPlayerBar.TryGetComponent<Image>(out var image))
             {
                 return;
@@ -70,26 +70,65 @@ namespace Managers.UI.Lobby
                 ? TeamManager.Instance.AttackerColor
                 : TeamManager.Instance.DefenderColor;
 
-            var usernameText = newPlayerBar.GetComponentInChildren<TMP_Text>();
-
-            if (!usernameText)
+            if(!newPlayerBar.TryGetComponent<PlayerBar>(out var playerBar))
             {
                 return;
             }
 
-            usernameText.text = $"{PlayerManager.Instance.GetPlayer(playerId).Username}";
+            playerBar.Owner = playerId;
+            _playerBars.Add(playerId, playerBar);
 
-            _playerBars.Add(playerId, newPlayerBar);
-        }
+            var player = PlayerManager.Instance.GetPlayer(playerId);
 
-        private void EventManager_LocalPlayerReceived()
-        {
-           UpdateStartButtonVisibility();
+            if (!player)
+            {
+                return;
+            }
+
+            EventManager.CallRttUpdated(playerId, player.LastKnownRtt);
+
+            UpdateLeaderVisuals();
+
+            playerBar.KickButton.onClick.AddListener(() =>
+            {
+                KickPlayer(playerBar.Owner);
+            });
+
+            playerBar.UsernameText.text = $"{player.Username}";
         }
 
         private void EventManager_LeaderChanged(ushort newPlayerId)
         {
+            UpdateLeaderVisuals();
+        }
+
+        private void EventManager_RttUpdated(ushort clientId, float rtt)
+        {
+            if (!_playerBars.ContainsKey(clientId))
+            {
+                return;
+            }
+
+            //TODO: Maybe only send integer rtt to everyone on update, since only that is actively used.
+            _playerBars[clientId].PingText.SetText($"{Mathf.CeilToInt(rtt)}ms");
+        }
+
+        private void UpdateLeaderVisuals()
+        {
+            foreach(var playerBar in _playerBars.Values)
+            {
+                playerBar.LeaderIcon.SetActive(false);
+                playerBar.KickButton.gameObject.SetActive(false);
+            }
+
             UpdateStartButtonVisibility();
+            UpdateKickIconVisibility();
+
+            var leader = PlayerManager.Instance.GetCurrentLeader();
+            if (!leader)
+                return;
+
+            _playerBars[leader.PlayerId].LeaderIcon.SetActive(true);
         }
 
         private void UpdateStartButtonVisibility()
@@ -97,10 +136,18 @@ namespace Managers.UI.Lobby
             _startButton.gameObject.SetActive(PlayerManager.Instance.GetLocalPlayer() == PlayerManager.Instance.GetCurrentLeader());
         }
 
+        private void UpdateKickIconVisibility()
+        {
+            foreach(var playerBar in _playerBars.Values)
+            {
+                playerBar.KickButton.gameObject.SetActive(PlayerManager.Instance.GetLocalPlayer() == PlayerManager.Instance.GetCurrentLeader() && 
+                    playerBar.Owner != PlayerManager.Instance.GetLocalPlayer().PlayerId);
+            }
+        }
+
         public void LeaveGame()
         {
             NetworkManager.Instance.Client.Disconnect();
-            SceneManager.LoadScene("MainMenu");
         }
 
         public void SwitchTeam()
@@ -114,6 +161,14 @@ namespace Managers.UI.Lobby
         private void ReenableSwitchButton()
         {
             _switchTeamButton.enabled = true;
+        }
+
+        private void KickPlayer(ushort playerId)
+        {
+            Debug.Log("Send kick request");
+            var kickMessage = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.KickRequest);
+            kickMessage.AddUShort(playerId);
+            NetworkManager.Instance.Client.Send(kickMessage);
         }
     }
 }

@@ -28,6 +28,23 @@ namespace Managers
             };
         }
 
+        private void OnEnable()
+        {
+            EventManager.LocalPlayerDisconnect += EventManager_LocalPlayerDisconnect;
+        }
+
+        private void OnDisable()
+        {
+            EventManager.LocalPlayerDisconnect -= EventManager_LocalPlayerDisconnect;
+        }
+
+        private void EventManager_LocalPlayerDisconnect()
+        {
+            foreach (var team in _teamMembers.Values) {
+                team.Clear();
+            }
+        }
+
         public Team GetTeam(ushort clientId)
         {
             foreach (var team in _teamMembers.Keys)

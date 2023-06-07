@@ -45,4 +45,18 @@ public static class EventManager
     {
         LeaderChanged?.Invoke(newLeaderId);
     }
+
+    public static Action<ushort, float> RttUpdated;
+
+    public static void CallRttUpdated(ushort playerId, float rtt)
+    {
+        RttUpdated?.Invoke(playerId, rtt);
+    }
+
+    public static Action LocalPlayerDisconnect;
+
+    public static void CallLocalPlayerDisconnect()
+    {
+        LocalPlayerDisconnect?.Invoke();
+    }
 }

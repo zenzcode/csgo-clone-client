@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using Enums;
 using Helper;
+using Managers;
 using Riptide;
 using Riptide.Utils;
 using UnityEngine;
@@ -38,6 +39,7 @@ namespace Manager
             Client.ConnectionFailed += Client_ConnectionFailed;
             Client.Connected += Client_Connected;
             Client.ClientDisconnected += Client_ClientDisconnected;
+            Client.Disconnected += Client_Disconnected;
         }
 
         private void Client_ConnectionFailed(object o, ConnectionFailedEventArgs eventArgs)
@@ -85,6 +87,7 @@ namespace Manager
             Client.ConnectionFailed -= Client_ConnectionFailed;
             Client.Connected -= Client_Connected;
             Client.ClientDisconnected -= Client_ClientDisconnected;
+            Client.Disconnected -= Client_Disconnected;
         }
 
         private void SetRtt(float packageTime, float serverReceiveTime, float serverTimeSinceLoad)
@@ -92,12 +95,27 @@ namespace Manager
             Rtt = (Time.realtimeSinceStartup - packageTime) * 1000;
             var serverTime = serverReceiveTime + ((Rtt / 1000) * 0.5f);
             _clientServerDelta = (Time.realtimeSinceStartup + (serverTimeSinceLoad - Time.timeSinceLevelLoad)) - serverTime;
+
+            SendRttUpdate(Rtt);
+        }
+
+        private void SendRttUpdate(float rtt)
+        {
+            var message = Message.Create(MessageSendMode.Unreliable, (ushort)ClientToServerMessages.RTTUpdate);
+            message.AddFloat(rtt);
+            Client.Send(message);
         }
 
         private void Client_ClientDisconnected(object o, ClientDisconnectedEventArgs eventArgs)
         {
             EventManager.CallClientDisconnected(eventArgs.Id);
+        }
+
+        private void Client_Disconnected(object o, DisconnectedEventArgs eventArgs)
+        {
             CancelInvoke(nameof(SendRttRequest));
+            SceneManager.LoadScene("MainMenu");
+            EventManager.CallLocalPlayerDisconnect();
         }
 
         [MessageHandler((ushort)ServerToClientMessages.RTTAnswer)]
@@ -105,6 +123,20 @@ namespace Manager
         {
             //TODO: Check for lost package later using tick
             Instance.SetRtt(message.GetFloat(), message.GetFloat(), message.GetFloat());
+        }
+
+        [MessageHandler((ushort)ServerToClientMessages.RTTUpdate)]
+        private static void RttUpdated(Message message)
+        {
+            var clientId = message.GetUShort();
+            var rtt = message.GetFloat();
+
+            var player = PlayerManager.Instance.GetPlayer(clientId);
+            if (!player)
+                return;
+
+            player.LastKnownRtt = rtt;
+            EventManager.CallRttUpdated(clientId, rtt);
         }
     }
 }

@@ -28,8 +28,9 @@ namespace Managers
             var playerId = message.GetUShort();
             var username = message.GetString();
             var isLeader = message.GetBool();
+            var lastKnownRtt = message.GetFloat();
 
-            Instance.Spawn(playerId, username, isLeader);
+            Instance.Spawn(playerId, username, isLeader, lastKnownRtt);
         }
 
         [MessageHandler((ushort)ServerToClientMessages.LeaderChanged)]
@@ -44,11 +45,13 @@ namespace Managers
         private void OnEnable()
         {
             EventManager.ClientDisconnected += EventManager_ClientDisconnected;
+            EventManager.LocalPlayerDisconnect += EventManager_LocalPlayerDisconnect;
         }
 
         private void OnDisable()
         {
             EventManager.ClientDisconnected -= EventManager_ClientDisconnected;
+            EventManager.LocalPlayerDisconnect -= EventManager_LocalPlayerDisconnect;
         }
 
         private void EventManager_ClientDisconnected(ushort leaverId)
@@ -60,6 +63,11 @@ namespace Managers
 
             Destroy(_players[leaverId].gameObject);
             _players.Remove(leaverId);
+        }
+
+        private void EventManager_LocalPlayerDisconnect()
+        {
+            _players.Clear();
         }
 
         private void UpdateLeader(ushort oldLeaderId, ushort newLeaderId)
@@ -97,7 +105,7 @@ namespace Managers
             return _players.FirstOrDefault(player => player.Value.IsLeader).Value;
         }
 
-        private void Spawn(ushort playerId, string username, bool isLeader)
+        private void Spawn(ushort playerId, string username, bool isLeader, float lastKnownRtt)
         {
             if (_players.ContainsKey(playerId))
             {
@@ -115,14 +123,16 @@ namespace Managers
             player.Username = username;
             player.IsLeader = isLeader;
             player.IsLocal = playerId == NetworkManager.Instance.Client.Id;
+            player.LastKnownRtt = lastKnownRtt;
             newPlayer.name = $"{username} ({playerId})";
+
+            _players.Add(playerId, player);
 
             if (player.IsLocal)
             {
                 EventManager.CallLocalPlayerReceived();
             }
 
-            _players.Add(playerId, player);
         }
     }
 }

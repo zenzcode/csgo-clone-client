@@ -4,6 +4,8 @@ namespace Enums
     {
         Username = 1,
         SwitchTeamRequest,
-        RequestRTT
+        RequestRTT,
+        RTTUpdate,
+        KickRequest
     }
 }

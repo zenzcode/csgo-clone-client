@@ -12,5 +12,6 @@ namespace Player
         [HideInInspector] public Team Team { get; set; }
         [HideInInspector] public bool IsLocal { get; set; }
         [HideInInspector] public bool IsLeader { get; set; }
+        [HideInInspector] public float LastKnownRtt { get; set; } = 1;
     }
 }
