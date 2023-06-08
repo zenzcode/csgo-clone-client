@@ -66,9 +66,7 @@ namespace Managers.UI.Lobby
                 return;
             }
 
-            image.color = team == Team.Attacker
-                ? TeamManager.Instance.AttackerColor
-                : TeamManager.Instance.DefenderColor;
+            image.color = GetColor(team, playerId);
 
             if(!newPlayerBar.TryGetComponent<PlayerBar>(out var playerBar))
             {
@@ -95,6 +93,25 @@ namespace Managers.UI.Lobby
             });
 
             playerBar.UsernameText.text = $"{player.Username}";
+        }
+
+        private Color GetColor(Team team, ushort playerId)
+        {
+            var localPlayer = PlayerManager.Instance.GetLocalPlayer();
+
+            switch (team)
+            {
+                case Team.Attacker:
+                    if (!localPlayer || (localPlayer != null && localPlayer.PlayerId != playerId))
+                        return TeamManager.Instance.AttackerColor;
+                    return TeamManager.Instance.AttackerLocalColor;
+                case Team.Defender:
+                    if (!localPlayer || (localPlayer != null && localPlayer.PlayerId != playerId))
+                        return TeamManager.Instance.DefenderColor;
+                    return TeamManager.Instance.DefenderLocalColor;
+            }
+
+            return Color.black;
         }
 
         private void EventManager_LeaderChanged(ushort newPlayerId)

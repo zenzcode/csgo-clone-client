@@ -14,8 +14,12 @@ namespace Managers
         private Dictionary<Team, List<ushort>> _teamMembers;
         [SerializeField] private Color _defenderColor;
         [SerializeField] private Color _attackerColor;
+        [SerializeField] private Color _defenderLocalColor;
+        [SerializeField] private Color _attackerLocalColor;
         [HideInInspector] public Color DefenderColor => _defenderColor;
         [HideInInspector] public Color AttackerColor => _attackerColor;
+        [HideInInspector] public Color DefenderLocalColor => _defenderLocalColor;
+        [HideInInspector] public Color AttackerLocalColor => _attackerLocalColor;
 
         protected override void Awake()
         {

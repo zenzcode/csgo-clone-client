@@ -377,6 +377,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _defenderColor: {r: 0.003921569, g: 0.21568628, b: 1, a: 1}
   _attackerColor: {r: 0.90588236, g: 0.3254902, b: 0.011764706, a: 1}
+  _defenderLocalColor: {r: 0.4764151, g: 0.5877284, b: 1, a: 1}
+  _attackerLocalColor: {r: 1, g: 0.5988911, b: 0.3820755, a: 1}
 --- !u!1 &414464169
 GameObject:
   m_ObjectHideFlags: 0
