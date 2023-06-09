@@ -22,7 +22,13 @@ namespace Manager
         //RoundTripTime in MS
         [HideInInspector] public float Rtt = 0;
 
-        private float _clientServerDelta;
+        private float _clientServerDelta = 0;
+
+        [HideInInspector] public float ClientServerDelta => _clientServerDelta;
+
+        private float _serverStartupTime = 0;
+
+        [HideInInspector] public float ServerStartupTime => _serverStartupTime;
 
         protected override void Awake()
         {
@@ -90,11 +96,12 @@ namespace Manager
             Client.Disconnected -= Client_Disconnected;
         }
 
-        private void SetRtt(float packageTime, float serverReceiveTime, float serverTimeSinceLoad)
+        private void SetRtt(float packageTime, float serverStartupTime, float serverTimeSinceLoad)
         {
             Rtt = (Time.realtimeSinceStartup - packageTime) * 1000;
-            var serverTime = serverReceiveTime + ((Rtt / 1000) * 0.5f);
-            _clientServerDelta = (Time.realtimeSinceStartup + (serverTimeSinceLoad - Time.timeSinceLevelLoad)) - serverTime;
+            var serverTime = serverTimeSinceLoad + ((Rtt / 1000) * 0.5f);
+            _serverStartupTime = serverStartupTime;
+            _clientServerDelta = serverTime - Time.timeSinceLevelLoad;
 
             SendRttUpdate(Rtt);
         }
@@ -137,6 +144,11 @@ namespace Manager
 
             player.LastKnownRtt = rtt;
             EventManager.CallRttUpdated(clientId, rtt);
+        }
+
+        public float GetServerTime()
+        {
+            return Time.timeSinceLevelLoad + ClientServerDelta;
         }
     }
 }

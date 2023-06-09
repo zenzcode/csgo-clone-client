@@ -6,6 +6,7 @@ namespace Enums
         SpawnClient,
         LeaderChanged,
         RTTAnswer,
-        RTTUpdate
+        RTTUpdate,
+        TimerStarted
     }
 }

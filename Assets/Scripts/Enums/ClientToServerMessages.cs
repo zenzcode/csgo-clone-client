@@ -6,6 +6,7 @@ namespace Enums
         SwitchTeamRequest,
         RequestRTT,
         RTTUpdate,
-        KickRequest
+        KickRequest,
+        StartGameTimer
     }
 }

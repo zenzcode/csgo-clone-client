@@ -21,6 +21,8 @@ namespace Managers.UI.Lobby
         [SerializeField] private Button _leaveButton;
         [SerializeField] private Button _switchTeamButton;
         [SerializeField] private float _buttonDebounceTime = 3f;
+        [SerializeField] private GameObject _clock;
+        [SerializeField] private TMP_Text _clockText;
 
         protected override void Awake()
         {
@@ -33,6 +35,9 @@ namespace Managers.UI.Lobby
             EventManager.TeamChanged += EventManager_TeamChanged;
             EventManager.LeaderChanged += EventManager_LeaderChanged;
             EventManager.RttUpdated += EventManager_RttUpdated;
+            EventManager.TimerStarted += EventManager_TimerStarted;
+            EventManager.TimerUpdate += EventManager_TimerUpdate;
+            EventManager.TimerEnded += EventManager_TimerEnded;
         }
 
         private void OnDisable()
@@ -40,6 +45,9 @@ namespace Managers.UI.Lobby
             EventManager.TeamChanged -= EventManager_TeamChanged;
             EventManager.LeaderChanged -= EventManager_LeaderChanged;
             EventManager.RttUpdated -= EventManager_RttUpdated;
+            EventManager.TimerStarted -= EventManager_TimerStarted;
+            EventManager.TimerUpdate -= EventManager_TimerUpdate;
+            EventManager.TimerEnded -= EventManager_TimerEnded;
         }
 
         private void EventManager_TeamChanged(ushort playerId)
@@ -114,6 +122,40 @@ namespace Managers.UI.Lobby
             return Color.black;
         }
 
+        private void EventManager_TimerStarted(Timer timer, int startTime)
+        {
+            if(timer == Timer.WarmupTimer)
+            {
+                _clock.SetActive(true);
+                _clockText.SetText(GetTimeInFormat(startTime));
+            }
+        }
+
+        private void EventManager_TimerUpdate(Timer timer, int remaining)
+        {
+            if(timer == Timer.WarmupTimer)
+            {
+                _clockText.SetText(GetTimeInFormat(remaining));
+            }
+        }
+
+        private void EventManager_TimerEnded(Timer timer)
+        {
+            if(timer == Timer.WarmupTimer)
+            {
+                _clockText.SetText("Loading...");
+            }
+        }
+
+        private string GetTimeInFormat(int seconds)
+        {
+            var minutes = (seconds / 60) % 60;
+            seconds %= 60;
+
+            return $"{minutes.ToString("D2")}:{seconds.ToString("D2")}";
+        }
+
+
         private void EventManager_LeaderChanged(ushort newPlayerId)
         {
             UpdateLeaderVisuals();
@@ -165,6 +207,16 @@ namespace Managers.UI.Lobby
         public void LeaveGame()
         {
             NetworkManager.Instance.Client.Disconnect();
+        }
+
+        public void StartGame()
+        {
+            if (GameManager.Instance.IsTimerRunning)
+                return;
+
+            var message = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.StartGameTimer);
+            NetworkManager.Instance.Client.Send(message);
+            _startButton.enabled = false;
         }
 
         public void SwitchTeam()

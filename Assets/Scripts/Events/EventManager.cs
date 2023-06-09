@@ -1,3 +1,4 @@
+using Enums;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -58,5 +59,26 @@ public static class EventManager
     public static void CallLocalPlayerDisconnect()
     {
         LocalPlayerDisconnect?.Invoke();
+    }
+
+    public static Action<Timer, int> TimerStarted;
+
+    public static void CallTimerStarted(Timer timer, int startTime)
+    {
+        TimerStarted?.Invoke(timer, startTime);
+    }
+
+    public static Action<Timer, int> TimerUpdate;
+
+    public static void CallTimerUpdate(Timer timer, int remainingTime)
+    {
+        TimerUpdate?.Invoke(timer, remainingTime);
+    }
+
+    public static Action<Timer> TimerEnded;
+
+    public static void CallTimerEnded(Timer timer)
+    {
+        TimerEnded?.Invoke(timer);
     }
 }
