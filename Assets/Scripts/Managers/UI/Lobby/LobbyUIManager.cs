@@ -187,6 +187,11 @@ namespace Managers.UI.Lobby
             if (!leader)
                 return;
 
+            if(!_playerBars.ContainsKey(leader.PlayerId))
+            {
+                return;
+            }
+            
             _playerBars[leader.PlayerId].LeaderIcon.SetActive(true);
         }
 
