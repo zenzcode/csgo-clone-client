@@ -24,6 +24,9 @@ namespace Assets
         [SerializeField] private GameObject _lobbyPlayer;
         public GameObject LobbyPlayer => _lobbyPlayer;
 
+        [SerializeField] private GameObject _gamePlayer;
+        public GameObject GamePlayer => _gamePlayer;
+
         [SerializeField] private GameObject _lobbyPlayerUIPrefab;
         public GameObject LobbyPlayerUIPrefab => _lobbyPlayerUIPrefab;
     }

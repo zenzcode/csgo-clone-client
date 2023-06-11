@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Enums;
 using Helper;
 using Managers;
+using Misc;
 using Riptide;
 using Riptide.Utils;
 using UnityEngine;
@@ -30,10 +32,16 @@ namespace Manager
 
         [HideInInspector] public float ServerStartupTime => _serverStartupTime;
 
+        private uint _tick = 0;
+
+        [HideInInspector] public uint Tick => _tick;
+
+        private const uint MaxDiff = 5;
+
         protected override void Awake()
         {
             base.Awake();
-            DontDestroyOnLoad(this);
+            SceneManager.LoadScene(Statics.MainMenuMapName, LoadSceneMode.Additive);
             
 #if UNITY_EDITOR
             RiptideLogger.Initialize(Debug.Log, Debug.Log, Debug.LogWarning, Debug.LogError, true);
@@ -55,7 +63,8 @@ namespace Manager
 
         private void Client_Connected(object o, EventArgs eventArgs)
         {
-            SceneManager.LoadScene("Lobby");
+            SceneManager.UnloadSceneAsync(Statics.MainMenuMapName);
+            SceneManager.LoadScene(Statics.LobbyMapName, LoadSceneMode.Additive);
             SendUsername();
             InvokeRepeating(nameof(SendRttRequest), 0, _rttCheckupInterval);
         }
@@ -69,7 +78,6 @@ namespace Manager
 
         private void SendRttRequest()
         {
-            //TODO: Add Tick later to recognize lost package.
             var message = Message.Create(MessageSendMode.Unreliable, (ushort)ClientToServerMessages.RequestRTT);
             message.AddFloat(Time.realtimeSinceStartup);
             Client.Send(message);
@@ -84,6 +92,10 @@ namespace Manager
 
         private void FixedUpdate()
         {
+            if(Client.IsConnected)
+            {
+                _tick++;
+            }
             Client.Update();
         }
 
@@ -120,15 +132,32 @@ namespace Manager
 
         private void Client_Disconnected(object o, DisconnectedEventArgs eventArgs)
         {
+            _tick = 0;
             CancelInvoke(nameof(SendRttRequest));
-            SceneManager.LoadScene("MainMenu");
+            for(var sceneIdx = 0; sceneIdx < SceneManager.sceneCount; ++sceneIdx)
+            {
+                var scene = SceneManager.GetSceneAt(sceneIdx);
+                if (scene.name.Equals(Statics.PersistentMapName))
+                    continue;
+
+                SceneManager.UnloadSceneAsync(scene);
+            }
+            SceneManager.LoadScene(Statics.MainMenuMapName, LoadSceneMode.Additive);
             EventManager.CallLocalPlayerDisconnect();
+        }
+
+        private void ServerTickReceived(uint serverTick)
+        {
+            if(serverTick - _tick > MaxDiff)
+            {
+                Debug.LogWarning($"Server and Client are more than 5 ticks apart. (Server: {serverTick}; Client: {_tick})");
+            }
+            _tick = serverTick;
         }
 
         [MessageHandler((ushort)ServerToClientMessages.RTTAnswer)]
         private static void RttAnswer(Message message)
         {
-            //TODO: Check for lost package later using tick
             Instance.SetRtt(message.GetFloat(), message.GetFloat(), message.GetFloat());
         }
 
@@ -144,6 +173,35 @@ namespace Manager
 
             player.LastKnownRtt = rtt;
             EventManager.CallRttUpdated(clientId, rtt);
+        }
+
+        [MessageHandler((ushort)ServerToClientMessages.TickUpdated)]
+        private static void TickUpdateReceived(Message message)
+        {
+            var serverTick = message.GetUInt();
+
+            Instance.ServerTickReceived(serverTick);
+        }
+
+        [MessageHandler((ushort)ServerToClientMessages.Travel)]
+        private static void Travel(Message message)
+        {
+            var levelName = message.GetString();
+            SceneManager.UnloadSceneAsync(Statics.LobbyMapName);
+            var levelLoad = SceneManager.LoadSceneAsync(levelName, LoadSceneMode.Additive);
+            levelLoad.completed += Instance.LevelLoad_Completed;
+        }
+
+        private void LevelLoad_Completed(AsyncOperation operation)
+        {
+            operation.completed -= LevelLoad_Completed;
+            SendTravelFinishMessage();
+        }
+
+        private void SendTravelFinishMessage()
+        {
+            var message = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.TravelFinished);
+            NetworkManager.Instance.Client.Send(message);
         }
 
         public float GetServerTime()

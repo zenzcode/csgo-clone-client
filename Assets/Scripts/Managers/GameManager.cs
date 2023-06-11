@@ -61,8 +61,13 @@ namespace Manager
             {
                 EventManager.CallTimerEnded(_activeTimer);
                 _isTimerRunning = false;
-                Debug.Log("TIMER COMPLETE");
             }
+        }
+
+        [MessageHandler((ushort)ServerToClientMessages.GameStateUpdated)]
+        private static void OnGameStateUpdate(Message message)
+        {
+            Instance.State = (GameState)message.GetUShort();
         }
     }
 }

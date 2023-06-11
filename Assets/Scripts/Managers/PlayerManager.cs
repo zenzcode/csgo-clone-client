@@ -19,10 +19,9 @@ namespace Managers
         {
             base.Awake();
             _players = new Dictionary<ushort, Player.Player>();
-            DontDestroyOnLoad(this);
         }
 
-        [MessageHandler((ushort)ServerToClientMessages.SpawnClient)]
+        [MessageHandler((ushort)ServerToClientMessages.SpawnLobbyClient)]
         private static void SpawnClient(Message message)
         {
             var playerId = message.GetUShort();
@@ -54,6 +53,15 @@ namespace Managers
             EventManager.LocalPlayerDisconnect -= EventManager_LocalPlayerDisconnect;
         }
 
+        public void ClearPlayers()
+        {
+            foreach(var player in _players.Values)
+            {
+                Destroy(player.gameObject);
+            }
+            _players.Clear();
+        }
+
         private void EventManager_ClientDisconnected(ushort leaverId)
         {
             if (!_players.ContainsKey(leaverId))
@@ -67,7 +75,7 @@ namespace Managers
 
         private void EventManager_LocalPlayerDisconnect()
         {
-            _players.Clear();
+            ClearPlayers();
         }
 
         private void UpdateLeader(ushort oldLeaderId, ushort newLeaderId)
@@ -112,7 +120,7 @@ namespace Managers
                 return;
             }
 
-            var newPlayer = Instantiate(AssetManager.Instance.LobbyPlayer);
+            var newPlayer =Instantiate(AssetManager.Instance.LobbyPlayer);
 
             if (!newPlayer.TryGetComponent<Player.Player>(out var player))
             {
@@ -132,7 +140,27 @@ namespace Managers
             {
                 EventManager.CallLocalPlayerReceived();
             }
+        }
 
+        private void SpawnInMap(ushort playerId, Vector3 position, Quaternion rotation)
+        {
+            var player = GetPlayer(playerId);
+
+            if(!player)
+            {
+                return;
+            }
+
+            Instantiate(AssetManager.Instance.GamePlayer, player.transform);
+
+            player.gameObject.transform.position = position;
+            player.gameObject.transform.rotation = rotation;
+        }
+
+        [MessageHandler((ushort)ServerToClientMessages.SpawnInMap)]
+        private static void SpawnInMap(Message message)
+        {
+            Instance.SpawnInMap(message.GetUShort(), message.GetVector3(), message.GetQuaternion());
         }
     }
 }

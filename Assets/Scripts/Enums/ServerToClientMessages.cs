@@ -3,10 +3,14 @@ namespace Enums
     public enum ServerToClientMessages
     {
         TeamSet = 0,
-        SpawnClient,
+        SpawnLobbyClient,
         LeaderChanged,
         RTTAnswer,
         RTTUpdate,
-        TimerStarted
+        TimerStarted,
+        TickUpdated,
+        GameStateUpdated,
+        Travel,
+        SpawnInMap
     }
 }
