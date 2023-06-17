@@ -124,7 +124,7 @@ namespace Managers.UI.Lobby
 
         private void EventManager_TimerStarted(Timer timer, int startTime)
         {
-            if(timer == Timer.WarmupTimer)
+            if(timer == Timer.LobbyTimer)
             {
                 _clock.SetActive(true);
                 _clockText.SetText(GetTimeInFormat(startTime));
@@ -133,7 +133,7 @@ namespace Managers.UI.Lobby
 
         private void EventManager_TimerUpdate(Timer timer, int remaining)
         {
-            if(timer == Timer.WarmupTimer)
+            if(timer == Timer.LobbyTimer)
             {
                 _clockText.SetText(GetTimeInFormat(remaining));
             }
@@ -141,7 +141,7 @@ namespace Managers.UI.Lobby
 
         private void EventManager_TimerEnded(Timer timer)
         {
-            if(timer == Timer.WarmupTimer)
+            if(timer == Timer.LobbyTimer)
             {
                 _clockText.SetText("Loading...");
             }
@@ -216,25 +216,26 @@ namespace Managers.UI.Lobby
 
         public void StartGame()
         {
-            if (GameManager.Instance.IsTimerRunning)
+            if (TimerManager.Instance.IsTimerRunning(Timer.LobbyTimer))
                 return;
 
-            var message = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.StartGameTimer);
+            var message = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.StartTimerRequest);
+            message.AddUShort((ushort)Enums.Timer.LobbyTimer);
             NetworkManager.Instance.Client.Send(message);
-            _startButton.enabled = false;
+            _startButton.interactable = false;
         }
 
         public void SwitchTeam()
         {
             var message = Message.Create(MessageSendMode.Unreliable, (ushort)ClientToServerMessages.SwitchTeamRequest);
             NetworkManager.Instance.Client.Send(message);
-            _switchTeamButton.enabled = false;
+            _switchTeamButton.interactable = false;
             Invoke(nameof(ReenableSwitchButton), _buttonDebounceTime);
         }
 
         private void ReenableSwitchButton()
         {
-            _switchTeamButton.enabled = true;
+            _switchTeamButton.interactable = true;
         }
 
         private void KickPlayer(ushort playerId)

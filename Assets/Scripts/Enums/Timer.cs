@@ -7,6 +7,6 @@ namespace Enums
     public enum Timer
     {
         None = 0,
-        WarmupTimer
+        LobbyTimer
     }
 }

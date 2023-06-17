@@ -7,7 +7,7 @@ namespace Enums
         RequestRTT,
         RTTUpdate,
         KickRequest,
-        StartGameTimer,
+        StartTimerRequest,
         TravelFinished
     }
 }
