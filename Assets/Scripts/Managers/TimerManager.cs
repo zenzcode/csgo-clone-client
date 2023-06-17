@@ -83,7 +83,10 @@ namespace Manager
                 {
                     EventManager.CallTimerEnded(timer.Timer);
                     _runningTimers.RemoveAt(i);
+                    continue;
                 }
+
+                _runningTimers[i] = timer;
             }
         }
 
