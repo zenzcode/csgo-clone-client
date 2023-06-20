@@ -160,6 +160,8 @@ GameObject:
   - component: {fileID: 7032584822550714593}
   - component: {fileID: 1210060512558836154}
   - component: {fileID: 2384699866417898019}
+  - component: {fileID: 8922888055519710599}
+  - component: {fileID: 7265633958616761699}
   m_Layer: 0
   m_Name: GamePlayer
   m_TagString: Untagged
@@ -212,6 +214,64 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   _firstPerson: {fileID: 1299141065456223663}
   _thirdPerson: {fileID: 2975788654798848965}
+--- !u!114 &8922888055519710599
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7032584822550714606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 62899f850307741f2a39c98a8b639597, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  m_Actions: {fileID: -944628639613478452, guid: 46ccc20bf82d4814a9df71d155117ce3, type: 3}
+  m_NotificationBehavior: 3
+  m_UIInputModule: {fileID: 0}
+  m_DeviceLostEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_DeviceRegainedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ControlsChangedEvent:
+    m_PersistentCalls:
+      m_Calls: []
+  m_ActionEvents:
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: a6eaeaf4-2d5f-4331-a1c9-a1bd8204f3b2
+    m_ActionName: Player/Move[/Keyboard/w,/Keyboard/upArrow,/Keyboard/s,/Keyboard/downArrow,/Keyboard/a,/Keyboard/leftArrow,/Keyboard/d,/Keyboard/rightArrow]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 7eb88a89-77ad-43b4-950d-2a7af17aa8c8
+    m_ActionName: Player/Look[/Mouse/delta]
+  - m_PersistentCalls:
+      m_Calls: []
+    m_ActionId: 05dcd587-8342-46fe-88fe-2d542ff585e1
+    m_ActionName: Player/Fire[/Mouse/leftButton]
+  m_NeverAutoSwitchControlSchemes: 0
+  m_DefaultControlScheme: Keyboard&Mouse
+  m_DefaultActionMap: Player
+  m_SplitScreenIndex: -1
+  m_Camera: {fileID: 0}
+--- !u!114 &7265633958616761699
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 7032584822550714606}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 428b093695efaae4a9c2a090a83fdf4c, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  playerCamera: {fileID: 0}
+  sensitivity: 0
+  movementSpeed: 0
+  jumpForce: 0
 --- !u!1001 &1129046200246662933
 PrefabInstance:
   m_ObjectHideFlags: 0
@@ -382,6 +442,10 @@ PrefabInstance:
     - target: {fileID: -5852252112182085269, guid: f368a34ea06f24642b212fcb60fe1b99, type: 3}
       propertyPath: m_LocalEulerAnglesHint.z
       value: -101.59528
+      objectReference: {fileID: 0}
+    - target: {fileID: -5675355151119989895, guid: f368a34ea06f24642b212fcb60fe1b99, type: 3}
+      propertyPath: m_UpdateWhenOffscreen
+      value: 1
       objectReference: {fileID: 0}
     - target: {fileID: -5052055483532868852, guid: f368a34ea06f24642b212fcb60fe1b99, type: 3}
       propertyPath: m_LocalEulerAnglesHint.x

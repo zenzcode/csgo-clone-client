@@ -113,6 +113,21 @@ namespace Managers
             return _players.FirstOrDefault(player => player.Value.IsLeader).Value;
         }
 
+        public int GetPlayerCount()
+        {
+            return _players.Count;
+        }
+
+        public bool IsLocal(Player.Player player)
+        {
+            return player.PlayerId == NetworkManager.Instance.Client.Id;
+        }
+        
+        public bool IsLocal(ushort playerId)
+        {
+            return playerId == NetworkManager.Instance.Client.Id;
+        }
+
         private void Spawn(ushort playerId, string username, bool isLeader, float lastKnownRtt)
         {
             if (_players.ContainsKey(playerId))

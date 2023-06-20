@@ -4,6 +4,7 @@ using Assets;
 using Enums;
 using Helper;
 using Manager;
+using Misc;
 using Riptide;
 using TMPro;
 using UnityEngine;
@@ -60,6 +61,7 @@ namespace Managers.UI.Lobby
             }
 
             var team = TeamManager.Instance.GetTeam(playerId);
+            UpdateStartButtonVisibility();
 
             if (team == Team.None)
             {
@@ -180,7 +182,6 @@ namespace Managers.UI.Lobby
                 playerBar.KickButton.gameObject.SetActive(false);
             }
 
-            UpdateStartButtonVisibility();
             UpdateKickIconVisibility();
 
             var leader = PlayerManager.Instance.GetCurrentLeader();
@@ -198,6 +199,7 @@ namespace Managers.UI.Lobby
         private void UpdateStartButtonVisibility()
         {
             _startButton.gameObject.SetActive(PlayerManager.Instance.GetLocalPlayer() == PlayerManager.Instance.GetCurrentLeader());
+            _startButton.interactable = PlayerManager.Instance.GetPlayerCount() >= Statics.MinStartPlayers;
         }
 
         private void UpdateKickIconVisibility()

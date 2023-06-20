@@ -6,8 +6,9 @@ namespace Misc
 {
     public static class Statics
     {
-        public static string LobbyMapName = "Lobby";
-        public static string MainMenuMapName = "MainMenu";
-        public static string PersistentMapName = "PersistentScene";
+        public const string LobbyMapName = "Lobby";
+        public const string MainMenuMapName = "MainMenu";
+        public const string PersistentMapName = "PersistentScene";
+        public const int MinStartPlayers = 2;
     }
 }
