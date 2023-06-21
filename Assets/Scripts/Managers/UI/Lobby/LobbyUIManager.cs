@@ -39,6 +39,7 @@ namespace Managers.UI.Lobby
             EventManager.TimerStarted += EventManager_TimerStarted;
             EventManager.TimerUpdate += EventManager_TimerUpdate;
             EventManager.TimerEnded += EventManager_TimerEnded;
+            EventManager.TimerStopped += EventManager_TimerStopped;
         }
 
         private void OnDisable()
@@ -49,6 +50,7 @@ namespace Managers.UI.Lobby
             EventManager.TimerStarted -= EventManager_TimerStarted;
             EventManager.TimerUpdate -= EventManager_TimerUpdate;
             EventManager.TimerEnded -= EventManager_TimerEnded;
+            EventManager.TimerStopped -= EventManager_TimerStopped;
         }
 
         private void EventManager_TeamChanged(ushort playerId)
@@ -172,6 +174,18 @@ namespace Managers.UI.Lobby
 
             //TODO: Maybe only send integer rtt to everyone on update, since only that is actively used.
             _playerBars[clientId].PingText.SetText($"{Mathf.CeilToInt(rtt)}ms");
+        }
+
+        private void EventManager_TimerStopped(Timer timer)
+        {
+            switch (timer)
+            {
+                case Timer.LobbyTimer:
+                    _clock.SetActive(false);
+                    break;
+                default:
+                    break;
+            }
         }
 
         private void UpdateLeaderVisuals()

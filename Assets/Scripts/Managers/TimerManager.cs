@@ -7,6 +7,7 @@ using System.Linq;
 using TimerManagement;
 using Unity.VisualScripting;
 using UnityEngine;
+using Timer = Enums.Timer;
 
 namespace TimerManagement
 {
@@ -39,6 +40,25 @@ namespace Manager
             Instance.TryStartTimer(message);
         }
 
+        [MessageHandler((ushort)ServerToClientMessages.TimerAborted)]
+        private static void TimerAborted(Message message)
+        {
+            Instance.TryStopTimer(message);
+        }
+
+        private void TryStopTimer(Message message)
+        {
+            var stoppedTimer = (Enums.Timer)message.GetUShort();
+
+            if (!IsTimerRunning(stoppedTimer))
+            {
+                return;
+            }
+
+            _runningTimers = _runningTimers.Where(runningTimer => runningTimer.Timer != stoppedTimer).ToList();
+            EventManager.CallTimerStopped(stoppedTimer);
+        }
+        
         private void TryStartTimer(Message message)
         {
             var timer = (Enums.Timer)message.GetUShort();

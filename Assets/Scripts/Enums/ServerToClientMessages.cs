@@ -8,6 +8,7 @@ namespace Enums
         RTTAnswer,
         RTTUpdate,
         TimerStarted,
+        TimerAborted,
         TickUpdated,
         GameStateUpdated,
         Travel,

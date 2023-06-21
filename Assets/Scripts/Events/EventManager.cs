@@ -75,6 +75,13 @@ public static class EventManager
         TimerUpdate?.Invoke(timer, remainingTime);
     }
 
+    public static Action<Timer> TimerStopped;
+    
+    public static void CallTimerStopped(Timer timer)
+    {
+        TimerStopped?.Invoke(timer);
+    }
+
     public static Action<Timer> TimerEnded;
 
     public static void CallTimerEnded(Timer timer)
