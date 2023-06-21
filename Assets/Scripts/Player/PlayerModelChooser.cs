@@ -1,27 +1,40 @@
 using System.Collections;
 using System.Collections.Generic;
+using Player.Game;
 using UnityEngine;
 
 namespace Player
 {
+    [DisallowMultipleComponent]
     public class PlayerModelChooser : MonoBehaviour
     {
-        [SerializeField] private GameObject _firstPerson;
-        [SerializeField] private GameObject _thirdPerson;
+        [SerializeField] private GameObject firstPersonParent;
+        [SerializeField] private GameObject thirdPersonParent;
+
+        [SerializeField] private GameObject firstPersonModel;
+        [SerializeField] private GameObject thirdPersonModel;
         private Player _player;
+        private PlayerController _playerController;
 
         private void Awake()
         {
+            _playerController = GetComponent<PlayerController>();
             _player = GetComponentInParent<Player>();
-            _firstPerson.SetActive(false);
-            _thirdPerson.SetActive(false);
+            _playerController.Owner = _player;
+            
+            firstPersonParent.SetActive(false);
+            thirdPersonParent.SetActive(false);
             if (_player.IsLocal)
             {
-                _firstPerson.SetActive(true);
+                firstPersonParent.SetActive(true);
+                _playerController.PlayerCam = firstPersonModel.GetComponentInChildren<Camera>();
+                _playerController.PlayerModel = firstPersonModel;
             }
             else
             {
-                _thirdPerson.SetActive(true);
+                _playerController.PlayerCam = thirdPersonModel.GetComponentInChildren<Camera>();
+                _playerController.PlayerModel = thirdPersonModel;
+                thirdPersonParent.SetActive(true);
             }
         }
 
