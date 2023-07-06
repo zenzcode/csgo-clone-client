@@ -11,7 +11,8 @@ namespace Player.Game
 {
     public class PlayerController : MonoBehaviour
     {
-        [SerializeField] private float sensitivity = 1;
+        //TOOD: Move sensitivity to settings class
+        [SerializeField] private float sensitivity = 10;
 
         [SerializeField] private float movementSpeed = 15;
 
@@ -29,7 +30,9 @@ namespace Player.Game
 
         public GameObject PlayerModel { private get; set; }
 
-        public Player Owner { private get; set; }
+        public GameObject ModelParent { private get; set; }
+
+        public Player Owner { get; set; }
 
         private float _mouseDeltaX = 0, _mouseDeltaY = 0;
 
@@ -43,10 +46,21 @@ namespace Player.Game
             _lookAction.Enable();
 
             _lookAction.performed += PlayerLook;
+
+            if(Owner.IsLocal)
+            {
+                Cursor.lockState = CursorLockMode.Locked;
+                Cursor.visible = false;
+            }
         }
 
         private void FixedUpdate()
         {
+            if(!Owner.IsLocal)
+            {
+                return;
+            }
+
             _posStartTick = Owner.transform.position;
             _eulerStartTick = Owner.transform.eulerAngles;
             if (PlayerManager.Instance.IsLocal(Owner.PlayerId))
@@ -63,12 +77,10 @@ namespace Player.Game
 
         private void LookAround()
         {
-            Debug.Log("LOOK");
-            _yaw += _mouseDeltaX;
-            _pitch = Mathf.Clamp(_pitch + _mouseDeltaY, -89, 89);
-            PlayerCam.transform.eulerAngles = new Vector3(_yaw, 0, 0);
-            PlayerModel.transform.eulerAngles = new Vector3(0, 0, _pitch);
-            Debug.Log($"YAW: {_yaw}; PITCH: {_pitch}");
+            _yaw += _mouseDeltaX * Time.deltaTime * sensitivity;
+            _pitch = Mathf.Clamp(_pitch - (_mouseDeltaY * Time.deltaTime * sensitivity), -89, 89);
+            PlayerCam.transform.eulerAngles = new Vector3(_pitch, _yaw, 0);
+            ModelParent.transform.rotation = Quaternion.Euler(ModelParent.transform.rotation.x, _yaw, ModelParent.transform.rotation.z);
         }
 
         private void SendNewMovementTick()

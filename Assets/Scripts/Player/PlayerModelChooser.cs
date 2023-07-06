@@ -27,13 +27,15 @@ namespace Player
             if (_player.IsLocal)
             {
                 firstPersonParent.SetActive(true);
-                _playerController.PlayerCam = firstPersonModel.GetComponentInChildren<Camera>();
+                _playerController.PlayerCam = firstPersonParent.GetComponentInChildren<Camera>();
                 _playerController.PlayerModel = firstPersonModel;
+                _playerController.ModelParent = firstPersonParent;
             }
             else
             {
                 _playerController.PlayerCam = thirdPersonModel.GetComponentInChildren<Camera>();
                 _playerController.PlayerModel = thirdPersonModel;
+                _playerController.ModelParent = thirdPersonParent;
                 thirdPersonParent.SetActive(true);
             }
         }
