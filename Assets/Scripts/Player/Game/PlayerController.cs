@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using Enums;
 using Manager;
 using Managers;
 using Player.Game.Movement;
+using Riptide;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -17,6 +19,9 @@ namespace Player.Game
         [SerializeField] private float movementSpeed = 15;
 
         [SerializeField] private float jumpForce = 10;
+
+        //Only used on simulated client to determine wheter we are receiving an older tick than last
+        private int LastHandledTick = 0;
 
         private ClientInput _input;
 
@@ -56,29 +61,19 @@ namespace Player.Game
 
         private void FixedUpdate()
         {
-            if(!Owner.IsLocal)
-            {
-                return;
-            }
-
             _posStartTick = Owner.transform.position;
             _eulerStartTick = Owner.transform.eulerAngles;
             if (PlayerManager.Instance.IsLocal(Owner.PlayerId))
             {
-                LookAround();
+                LookAround(Time.deltaTime);
                 SendNewMovementTick();
-                
-            }
-            else
-            {
-                //HandleNewMovementTick();
             }
         }
 
-        private void LookAround()
+        private void LookAround(float DeltaTime)
         {
-            _yaw += _mouseDeltaX * Time.deltaTime * sensitivity;
-            _pitch = Mathf.Clamp(_pitch - (_mouseDeltaY * Time.deltaTime * sensitivity), -89, 89);
+            _yaw += _mouseDeltaX * DeltaTime * sensitivity;
+            _pitch = Mathf.Clamp(_pitch - (_mouseDeltaY * DeltaTime * sensitivity), -89, 89);
             PlayerCam.transform.eulerAngles = new Vector3(_pitch, _yaw, 0);
             ModelParent.transform.rotation = Quaternion.Euler(ModelParent.transform.rotation.x, _yaw, ModelParent.transform.rotation.z);
         }
@@ -98,11 +93,15 @@ namespace Player.Game
                 MouseDeltaY = _mouseDeltaY,
                 DeltaTime = Time.deltaTime
             };
-            
+
             _unacknowledgedTicks.Add(movementTick);
 
             _mouseDeltaX = 0;
             _mouseDeltaY = 0;
+
+            var message = Message.Create(MessageSendMode.Reliable, (ushort)ClientToServerMessages.Tick);
+            message.Add(movementTick);
+            NetworkManager.Instance.Client.Send(message);
         }
 
         private void PlayerLook(InputAction.CallbackContext callbackContext)

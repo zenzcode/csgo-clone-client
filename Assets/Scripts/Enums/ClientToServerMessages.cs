@@ -8,6 +8,7 @@ namespace Enums
         RTTUpdate,
         KickRequest,
         StartTimerRequest,
-        TravelFinished
+        TravelFinished,
+        Tick
     }
 }
