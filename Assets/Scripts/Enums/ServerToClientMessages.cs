@@ -12,6 +12,7 @@ namespace Enums
         TickUpdated,
         GameStateUpdated,
         Travel,
-        SpawnInMap
+        SpawnInMap,
+        TickResult
     }
 }

@@ -12,11 +12,14 @@ namespace Player.Game.Movement
         public Vector3 StartPosition;
         public Vector3 EndPosition;
         public int Input;
-        public Vector3 EulerAngles;
-        public Vector3 EndEulerAngles;
+        public float Yaw;
+        public float Pitch;
+        public float EndYaw;
+        public float EndPitch;
         public float MouseDeltaX;
         public float MouseDeltaY;
         public float DeltaTime;
+        public float Sensitivity;
 
         public void Deserialize(Message message)
         {
@@ -31,11 +34,14 @@ namespace Player.Game.Movement
             message.AddVector3(StartPosition);
             message.AddVector3(EndPosition);
             message.AddInt(Input);
-            message.AddVector3(EulerAngles);
-            message.AddVector3(EndEulerAngles);
+            message.AddFloat(Yaw);
+            message.AddFloat(EndYaw);
+            message.AddFloat(Pitch);
+            message.AddFloat(EndPitch);
             message.AddFloat(MouseDeltaX);
             message.AddFloat(MouseDeltaY);
             message.AddFloat(DeltaTime);
+            message.AddFloat(Sensitivity);
         }
     }
 }

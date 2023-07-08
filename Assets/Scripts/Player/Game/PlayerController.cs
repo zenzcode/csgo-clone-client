@@ -21,7 +21,7 @@ namespace Player.Game
         [SerializeField] private float jumpForce = 10;
 
         //Only used on simulated client to determine wheter we are receiving an older tick than last
-        private int LastHandledTick = 0;
+        private uint LastHandledTick = 0;
 
         private ClientInput _input;
 
@@ -41,7 +41,9 @@ namespace Player.Game
 
         private float _mouseDeltaX = 0, _mouseDeltaY = 0;
 
-        private Vector3 _posStartTick = Vector3.zero, _eulerStartTick = Vector3.zero;
+        private Vector2 _yawPitchStartTick = Vector2.zero;
+
+        private Vector3 _posStartTick = Vector3.zero;
         
         private void Awake()
         {
@@ -59,10 +61,20 @@ namespace Player.Game
             }
         }
 
+        private void OnEnable()
+        {
+            EventManager.MovementTickResultReceived += EventManager_MovementTickResultReceived;
+        }
+
+        private void OnDisable()
+        {
+            EventManager.MovementTickResultReceived -= EventManager_MovementTickResultReceived;
+        }
+
         private void FixedUpdate()
         {
             _posStartTick = Owner.transform.position;
-            _eulerStartTick = Owner.transform.eulerAngles;
+            _yawPitchStartTick = new Vector2(_yaw, _pitch);
             if (PlayerManager.Instance.IsLocal(Owner.PlayerId))
             {
                 LookAround(Time.deltaTime);
@@ -74,7 +86,7 @@ namespace Player.Game
         {
             _yaw += _mouseDeltaX * DeltaTime * sensitivity;
             _pitch = Mathf.Clamp(_pitch - (_mouseDeltaY * DeltaTime * sensitivity), -89, 89);
-            PlayerCam.transform.eulerAngles = new Vector3(_pitch, _yaw, 0);
+            PlayerCam.transform.eulerAngles = Vector3.Lerp(new Vector3(_yawPitchStartTick.y, _yawPitchStartTick.x, 0), new Vector3(_pitch, _yaw, 0), DeltaTime);
             ModelParent.transform.rotation = Quaternion.Euler(ModelParent.transform.rotation.x, _yaw, ModelParent.transform.rotation.z);
         }
 
@@ -87,11 +99,14 @@ namespace Player.Game
                 ClientId = Owner.PlayerId,
                 StartPosition = _posStartTick,
                 EndPosition = Owner.transform.position,
-                EulerAngles = _eulerStartTick,
-                EndEulerAngles = Owner.transform.eulerAngles,
+                Yaw = _yawPitchStartTick.x,
+                EndYaw = _yaw,
+                Pitch = _yawPitchStartTick.y,
+                EndPitch = _pitch,
                 MouseDeltaX = _mouseDeltaX,
                 MouseDeltaY = _mouseDeltaY,
-                DeltaTime = Time.deltaTime
+                DeltaTime = Time.deltaTime,
+                Sensitivity = sensitivity
             };
 
             _unacknowledgedTicks.Add(movementTick);
@@ -109,6 +124,49 @@ namespace Player.Game
             var delta = callbackContext.ReadValue<Vector2>();
             _mouseDeltaX = delta.x;
             _mouseDeltaY = delta.y;
+        }
+
+        [MessageHandler((ushort)ServerToClientMessages.TickResult)]
+        private static void TickResultReceived(Message message)
+        {
+            var movementTick = message.GetSerializable<MovementTickResult>();
+            EventManager.CallMovementTickResultReceived(movementTick);
+        }
+
+        private void EventManager_MovementTickResultReceived(MovementTickResult tickResult)
+        {
+            if(tickResult.ClientId != Owner.PlayerId)
+            {
+                return;
+            }
+
+            if(Owner.IsLocal)
+            {
+                //DISTANCE CHECK
+            }
+            else
+            {
+                //INTERP
+                SimulateTick(tickResult);
+
+            }
+        }
+
+        private void SimulateTick(MovementTickResult tickResult)
+        {
+            if(tickResult.Tick < LastHandledTick)
+            {
+                return;
+            }
+
+            LastHandledTick = tickResult.Tick;
+
+            var deltaYaw = tickResult.ActualEndYaw - tickResult.StartYaw;
+
+            //use later for aim offset
+            var deltaPitch = tickResult.ActualEndPitch - tickResult.StartPitch;
+
+           ModelParent.transform.Rotate(new Vector3(0, deltaYaw, 0), Space.Self);
         }
     }
 }

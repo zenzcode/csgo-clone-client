@@ -10,5 +10,6 @@ namespace Misc
         public const string MainMenuMapName = "MainMenu";
         public const string PersistentMapName = "PersistentScene";
         public const int MinStartPlayers = 2;
+        public const float MaxLookDelta = 10f;
     }
 }

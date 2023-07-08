@@ -1,4 +1,5 @@
 using Enums;
+using Player.Game.Movement;
 using System;
 using System.Collections;
 using System.Collections.Generic;
@@ -87,5 +88,12 @@ public static class EventManager
     public static void CallTimerEnded(Timer timer)
     {
         TimerEnded?.Invoke(timer);
+    }
+
+    public static Action<MovementTickResult> MovementTickResultReceived;
+
+    public static void CallMovementTickResultReceived(MovementTickResult tickResult)
+    {
+        MovementTickResultReceived?.Invoke(tickResult);
     }
 }
