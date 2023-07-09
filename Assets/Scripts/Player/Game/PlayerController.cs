@@ -1,9 +1,11 @@
 using System;
 using System.Collections;
 using System.Collections.Generic;
+using System.Linq;
 using Enums;
 using Manager;
 using Managers;
+using Misc;
 using Player.Game.Movement;
 using Riptide;
 using UnityEngine;
@@ -82,12 +84,26 @@ namespace Player.Game
             }
         }
 
-        private void LookAround(float DeltaTime)
+        private void LookAround(float deltaTime) 
         {
-            _yaw += _mouseDeltaX * DeltaTime * sensitivity;
-            _pitch = Mathf.Clamp(_pitch - (_mouseDeltaY * DeltaTime * sensitivity), -89, 89);
-            PlayerCam.transform.eulerAngles = Vector3.Lerp(new Vector3(_yawPitchStartTick.y, _yawPitchStartTick.x, 0), new Vector3(_pitch, _yaw, 0), DeltaTime);
-            ModelParent.transform.rotation = Quaternion.Euler(ModelParent.transform.rotation.x, _yaw, ModelParent.transform.rotation.z);
+            var newYawPitch = CalculateLook(_mouseDeltaX, _mouseDeltaY, _yaw, _pitch, deltaTime);
+            _yaw = newYawPitch.x;
+            _pitch = newYawPitch.y;
+            SetPlayerRotation(_yawPitchStartTick, _yaw, _pitch, deltaTime);
+        }
+
+        private Vector2 CalculateLook(float mouseDeltaX, float mouseDeltaY, float yaw, float pitch, float deltaTime)
+        {
+            yaw += mouseDeltaX * deltaTime * sensitivity;
+            pitch = Mathf.Clamp(pitch - (mouseDeltaY * deltaTime * sensitivity), -89, 89);
+
+            return new Vector2(yaw, pitch);
+        }
+
+        private void SetPlayerRotation(Vector2 yawPitchTickStart, float yaw, float pitch, float deltaTime)
+        {
+            PlayerCam.transform.eulerAngles = Vector3.Lerp(new Vector3(yawPitchTickStart.y, yawPitchTickStart.x, 0), new Vector3(pitch, yaw, 0), deltaTime);
+            ModelParent.transform.rotation = Quaternion.Euler(ModelParent.transform.rotation.x, yaw, ModelParent.transform.rotation.z);
         }
 
         private void SendNewMovementTick()
@@ -143,6 +159,8 @@ namespace Player.Game
             if(Owner.IsLocal)
             {
                 //DISTANCE CHECK
+                RemoveOlderUnacknowledgedMoves(tickResult.Tick);
+                CheckLookDelta(tickResult);
             }
             else
             {
@@ -152,9 +170,45 @@ namespace Player.Game
             }
         }
 
+        private void RemoveOlderUnacknowledgedMoves(uint tick)
+        {
+            _unacknowledgedTicks = _unacknowledgedTicks.Where(movementTick => movementTick.Tick > tick).ToList();
+        }
+
+        private void CheckLookDelta(MovementTickResult tickResult)
+        {
+            if(Mathf.Abs(tickResult.ActualEndYaw - tickResult.PassedEndYaw) > Statics.MaxYawPitchDelta || Mathf.Abs(tickResult.ActualEndPitch - tickResult.PassedEndPitch) > Statics.MaxYawPitchDelta)
+            {
+                Debug.LogWarning($"Server and Client result differed to much - recalculating.");
+                RecalculateLookSinceTick(tickResult);
+            }
+        }
+
+        private void RecalculateLookSinceTick(MovementTickResult tickResult)
+        {
+            var lastTickStartYaw = tickResult.StartYaw;
+            var lastTickStartPitch = tickResult.StartPitch;
+            var lastTickEndYaw = tickResult.ActualEndYaw;
+            var lastTickEndPitch = tickResult.ActualEndPitch;
+            var lastTickDeltaTime = tickResult.DeltaTime;
+
+            for(var index = 0; index < _unacknowledgedTicks.Count; ++index)
+            {
+                var tick = _unacknowledgedTicks[index];
+                lastTickStartYaw = tick.Yaw = lastTickEndYaw;
+                lastTickStartPitch = tick.Pitch = lastTickEndPitch;
+                lastTickDeltaTime = tickResult.DeltaTime;
+                var newYawPitch = CalculateLook(tick.MouseDeltaX, tick.MouseDeltaX, tick.Yaw, tick.Pitch, tick.DeltaTime);
+                lastTickEndYaw = tick.EndYaw = newYawPitch.x;
+                lastTickEndPitch = tick.EndPitch = newYawPitch.y;
+            }
+
+            SetPlayerRotation(new Vector2(lastTickStartYaw, lastTickStartPitch), lastTickEndYaw, lastTickEndPitch, lastTickDeltaTime);
+        }
+
         private void SimulateTick(MovementTickResult tickResult)
         {
-            if(tickResult.Tick < LastHandledTick)
+            if (tickResult.Tick < LastHandledTick)
             {
                 return;
             }
@@ -166,7 +220,7 @@ namespace Player.Game
             //use later for aim offset
             var deltaPitch = tickResult.ActualEndPitch - tickResult.StartPitch;
 
-           ModelParent.transform.Rotate(new Vector3(0, deltaYaw, 0), Space.Self);
+            ModelParent.transform.Rotate(new Vector3(0, deltaYaw, 0), Space.Self);
         }
     }
 }
