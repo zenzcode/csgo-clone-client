@@ -7,6 +7,7 @@ namespace Player.Game.Movement
     {
         public uint Tick;
         public ushort ClientId;
+        public Vector3 ActualStartPosition;
         public Vector3 StartPosition;
         public Vector3 PassedEndPosition;
         public Vector3 ActualEndPosition;
@@ -24,6 +25,7 @@ namespace Player.Game.Movement
         {
             ClientId = message.GetUShort();
             Tick = message.GetUInt();
+            ActualStartPosition = message.GetVector3();
             StartPosition = message.GetVector3();
             PassedEndPosition = message.GetVector3();
             ActualEndPosition = message.GetVector3();

@@ -3,6 +3,7 @@ using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using Enums;
+using Helpe;
 using Manager;
 using Managers;
 using Misc;
@@ -15,6 +16,8 @@ namespace Player.Game
 {
     public class PlayerController : MonoBehaviour
     {
+        private const float MAX_COLLIDE_DISTANCE = 0.1f;
+
         //TOOD: Move sensitivity to settings class
         [SerializeField] private float sensitivity = 10;
 
@@ -22,12 +25,16 @@ namespace Player.Game
 
         [SerializeField] private float jumpForce = 10;
 
+        [SerializeField] private LayerMask playerLayer;
+
         //Only used on simulated client to determine wheter we are receiving an older tick than last
         private uint LastHandledTick = 0;
 
         private ClientInput _input;
 
         private InputAction _lookAction;
+
+        private InputAction _moveAction;
 
         private float _yaw, _pitch;
         
@@ -43,20 +50,37 @@ namespace Player.Game
 
         private float _mouseDeltaX = 0, _mouseDeltaY = 0;
 
+        private Vector2 _lastMoveNormalized = Vector2.zero;
+
         private Vector2 _yawPitchStartTick = Vector2.zero;
 
         private Vector3 _posStartTick = Vector3.zero;
-        
+
+        private Rigidbody _rigidbody;
+
+        private CapsuleCollider _capsuleCollider;
+
+        private Collider[] collisions = new Collider[10];
+
         private void Awake()
         {
+            _rigidbody = GetComponent<Rigidbody>();
+            _capsuleCollider = GetComponent<CapsuleCollider>();
             _unacknowledgedTicks = new List<MovementTick>();
             _input = new ClientInput();
+            _moveAction = _input.Player.Move;
+            _moveAction.Enable();
             _lookAction = _input.Player.Look;
             _lookAction.Enable();
 
             _lookAction.performed += PlayerLook;
+            _moveAction.canceled += PlayerMoveStop;
+            _moveAction.performed += PlayerMove;
+        }
 
-            if(Owner.IsLocal)
+        private void Start()
+        {
+            if (Owner.IsLocal)
             {
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
@@ -75,17 +99,28 @@ namespace Player.Game
 
         private void FixedUpdate()
         {
+            if(!Owner)
+            {
+                return;
+            }
+
             _posStartTick = Owner.transform.position;
             _yawPitchStartTick = new Vector2(_yaw, _pitch);
             if (PlayerManager.Instance.IsLocal(Owner.PlayerId))
             {
                 LookAround(Time.deltaTime);
+                Move(Time.deltaTime);
                 SendNewMovementTick();
             }
         }
 
         private void LookAround(float deltaTime) 
         {
+            if(new Vector2(_mouseDeltaX, _mouseDeltaY).IsNearlyZero())
+            {
+                return;
+            }
+
             var newYawPitch = CalculateLook(_mouseDeltaX, _mouseDeltaY, _yaw, _pitch, deltaTime);
             _yaw = newYawPitch.x;
             _pitch = newYawPitch.y;
@@ -106,12 +141,55 @@ namespace Player.Game
             ModelParent.transform.rotation = Quaternion.Euler(ModelParent.transform.rotation.x, yaw, ModelParent.transform.rotation.z);
         }
 
+        private void Move(float deltaTime)
+        {
+            if (!PlayerCam)
+            {
+                return;
+            }
+
+            if(_lastMoveNormalized.IsNearlyZero())
+            {
+                return;
+            }
+
+            Vector3 moveVector = (ModelParent.transform.forward * _lastMoveNormalized.y + PlayerCam.transform.right * _lastMoveNormalized.x);
+
+            Vector3 targetPosition = Owner.transform.position + moveVector * movementSpeed * deltaTime;
+
+            Array.Clear(collisions, 0, collisions.Length);
+
+            int collisionNum = Physics.OverlapCapsuleNonAlloc(targetPosition, targetPosition + Vector3.up * _capsuleCollider.bounds.extents.y, 0.5f, collisions, playerLayer);
+            
+            if(collisionNum != 0)
+            {
+                foreach(Collider collision in collisions)
+                {
+                    //collision is invalid or we collided with ourselves
+                    if (!collision || collision.transform.root == transform.root)
+                    {
+                        continue;
+                    }
+
+                    //collision with non-player somehow
+                    if(!collision.TryGetComponent<PlayerController>(out PlayerController playerController))
+                    {
+                        continue;
+                    }
+
+                    return;
+                }
+            }
+
+            Owner.transform.position = targetPosition;
+        }
+
         private void SendNewMovementTick()
         {
             var movementTick = new MovementTick()
             {
                 Tick = NetworkManager.Instance.Tick,
-                Input = 0,
+                Input = ConvertInputToInt(),
                 ClientId = Owner.PlayerId,
                 StartPosition = _posStartTick,
                 EndPosition = Owner.transform.position,
@@ -135,11 +213,70 @@ namespace Player.Game
             NetworkManager.Instance.Client.Send(message);
         }
 
+        private int ConvertInputToInt()
+        {
+            int returnInput = 0;
+            if(_lastMoveNormalized.x > 0)
+            {
+                returnInput |= 1 << 0;
+            }
+            else if(_lastMoveNormalized.x < 0)
+            {
+                returnInput |= 1 << 1;
+            }
+
+            if(_lastMoveNormalized.y > 0)
+            {
+                returnInput |= 1 << 2;
+            }
+            else if(_lastMoveNormalized.y < 0)
+            {
+                returnInput |= 1 << 3;
+            }
+
+            return returnInput;
+        }
+        private Vector2 GetVectorFromInput(int input)
+        {
+            Vector2 result = Vector2.zero;
+
+            if ((1 << 0 & input) != 0)
+            {
+                result.x = 1;
+            }
+            else if ((1 << 1 & input) != 0)
+            {
+                result.x = -1;
+            }
+
+            if ((1 << 2 & input) != 0)
+            {
+                result.y = 1;
+            }
+            else if ((1 << 3 & input) != 0)
+            {
+                result.y = -1;
+            }
+
+            return result;
+        }
+
         private void PlayerLook(InputAction.CallbackContext callbackContext)
         {
             var delta = callbackContext.ReadValue<Vector2>();
             _mouseDeltaX = delta.x;
             _mouseDeltaY = delta.y;
+        }
+
+        private void PlayerMove(InputAction.CallbackContext callbackContext)
+        {
+            var moveInput = callbackContext.ReadValue<Vector2>();
+            _lastMoveNormalized = moveInput;
+        }
+
+        private void PlayerMoveStop(InputAction.CallbackContext callbackContext)
+        {
+            _lastMoveNormalized = Vector2.zero;
         }
 
         [MessageHandler((ushort)ServerToClientMessages.TickResult)]
@@ -161,12 +298,12 @@ namespace Player.Game
                 //DISTANCE CHECK
                 RemoveOlderUnacknowledgedMoves(tickResult.Tick);
                 CheckLookDelta(tickResult);
+                CheckMoveDelta(tickResult);
             }
             else
             {
                 //INTERP
                 SimulateTick(tickResult);
-
             }
         }
 
@@ -181,6 +318,15 @@ namespace Player.Game
             {
                 Debug.LogWarning($"Server and Client result differed to much - recalculating.");
                 RecalculateLookSinceTick(tickResult);
+            }
+        }
+
+        private void CheckMoveDelta(MovementTickResult tickResult)
+        {
+            if ((tickResult.ActualEndPosition - tickResult.PassedEndPosition).magnitude > Statics.MaxPositionDelta || (tickResult.ActualStartPosition - tickResult.StartPosition).magnitude > Statics.MaxPositionDelta)
+            {
+                Debug.LogWarning($"Server and Client result differed to much - recalculating.");
+                RecalculateMoveSinceTick(tickResult);
             }
         }
 
@@ -201,9 +347,41 @@ namespace Player.Game
                 var newYawPitch = CalculateLook(tick.MouseDeltaX, tick.MouseDeltaX, tick.Yaw, tick.Pitch, tick.DeltaTime);
                 lastTickEndYaw = tick.EndYaw = newYawPitch.x;
                 lastTickEndPitch = tick.EndPitch = newYawPitch.y;
+                _unacknowledgedTicks[index] = tick;
             }
 
             SetPlayerRotation(new Vector2(lastTickStartYaw, lastTickStartPitch), lastTickEndYaw, lastTickEndPitch, lastTickDeltaTime);
+        }
+
+        private void RecalculateMoveSinceTick(MovementTickResult tickResult)
+        {
+            Vector3 lastTickEndPosition = tickResult.ActualEndPosition;
+
+            for (var index = 0; index < _unacknowledgedTicks.Count; ++index)
+            {
+                MovementTick tick = _unacknowledgedTicks[index];
+                tick.StartPosition = lastTickEndPosition;
+
+                Vector3 moveDirection = (tick.EndPosition - tick.StartPosition).normalized;
+                Vector2 inputThisTick = GetVectorFromInput(tick.Input);
+
+                Quaternion modelParentQuaternion = Quaternion.Euler(new Vector3(ModelParent.transform.rotation.x, tick.Yaw, ModelParent.transform.rotation.z));
+
+                Quaternion camQuaternion = Quaternion.Euler(new Vector3(tick.Pitch, tick.Yaw, 0));
+
+                Vector3 modelForward = modelParentQuaternion * Vector3.forward;
+                Vector3 camRight = camQuaternion * Vector3.right;
+
+                Vector3 moveVector = (modelForward * inputThisTick.y + camRight * inputThisTick.x);
+
+                lastTickEndPosition = Vector3.Lerp(lastTickEndPosition, lastTickEndPosition + moveVector * movementSpeed, tick.DeltaTime);
+                tick.EndPosition = lastTickEndPosition;
+                _unacknowledgedTicks[index] = tick;
+
+            }
+
+            Debug.LogError("NEW POS: " + lastTickEndPosition);
+            Owner.transform.position = lastTickEndPosition;
         }
 
         private void SimulateTick(MovementTickResult tickResult)
@@ -221,6 +399,8 @@ namespace Player.Game
             var deltaPitch = tickResult.ActualEndPitch - tickResult.StartPitch;
 
             ModelParent.transform.Rotate(new Vector3(0, deltaYaw, 0), Space.Self);
+
+            Owner.transform.position = tickResult.ActualEndPosition;
         }
     }
 }

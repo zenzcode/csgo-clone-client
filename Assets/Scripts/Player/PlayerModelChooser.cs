@@ -20,8 +20,9 @@ namespace Player
         {
             _playerController = GetComponent<PlayerController>();
             _player = GetComponentInParent<Player>();
+
             _playerController.Owner = _player;
-            
+
             firstPersonParent.SetActive(false);
             thirdPersonParent.SetActive(false);
             if (_player.IsLocal)
