@@ -62,6 +62,10 @@ namespace Player.Game
 
         private Collider[] collisions = new Collider[10];
 
+        private Vector3 _targetPosition = Vector3.zero;
+
+        private bool _hasTargetPosition = false;
+
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody>();
@@ -95,6 +99,33 @@ namespace Player.Game
         private void OnDisable()
         {
             EventManager.MovementTickResultReceived -= EventManager_MovementTickResultReceived;
+        }
+
+        private void Update()
+        {
+            if (!Owner)
+            {
+                return;
+            }
+
+            if(Owner.IsLocal)
+            {
+                return;
+            }
+
+            if(!_hasTargetPosition)
+            {
+                return;
+            }
+
+            if(Vector3.Distance(Owner.transform.position, _targetPosition) <= Statics.MinPosDelta)
+            {
+                Owner.transform.position = _targetPosition;
+                _hasTargetPosition = false;
+                return;
+            }
+
+            Owner.transform.position = Vector3.Lerp(Owner.transform.position, _targetPosition, Time.deltaTime);
         }
 
         private void FixedUpdate()
@@ -302,6 +333,8 @@ namespace Player.Game
             }
             else
             {
+                //if interp didnt finish, snap to position
+                Owner.transform.position = tickResult.ActualStartPosition;
                 //INTERP
                 SimulateTick(tickResult);
             }
@@ -400,7 +433,8 @@ namespace Player.Game
 
             ModelParent.transform.Rotate(new Vector3(0, deltaYaw, 0), Space.Self);
 
-            Owner.transform.position = tickResult.ActualEndPosition;
+            _targetPosition = tickResult.ActualEndPosition;
+            _hasTargetPosition = true;
         }
     }
 }

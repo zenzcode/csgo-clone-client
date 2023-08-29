@@ -12,5 +12,6 @@ namespace Misc
         public const int MinStartPlayers = 2;
         public const float MaxYawPitchDelta = 1.5f;
         public const float MaxPositionDelta = 1.5f;
+        public const float MinPosDelta = 0.5f;
     }
 }
