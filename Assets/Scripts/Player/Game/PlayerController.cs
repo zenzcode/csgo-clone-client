@@ -132,7 +132,6 @@ namespace Player.Game
             {
                 Owner.transform.position = _targetPosition;
                 _hasTargetPosition = false;
-                _animator.SetFloat(Statics.VelocityAnimationParamter, 1);
                 return;
             }
 
@@ -446,8 +445,19 @@ namespace Player.Game
 
             _targetPosition = tickResult.ActualEndPosition;
             //Todo: Check Slowwalk
-            _animator.SetFloat(Statics.VelocityAnimationParamter, 1);
+            Vector3 moveDirection = Vector3.Normalize(_targetPosition - Owner.transform.position);
+            float directionDotProduct = Vector3.Dot(ModelParent.transform.forward, moveDirection);
+
+            _animator.SetFloat(Statics.VelocityAnimationParamter, directionDotProduct > 0 ? 1 : -1);
+
             _hasTargetPosition = true;
+
+            if (Vector3.Distance(Owner.transform.position, _targetPosition) <= Statics.MinPosDelta)
+            {
+                _animator.SetFloat(Statics.VelocityAnimationParamter, 0);
+                _animator.SetFloat(Statics.DirectionAnimationParamter, 0);
+                return;
+            }
         }
     }
 }
