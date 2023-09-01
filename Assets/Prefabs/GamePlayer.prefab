@@ -272,11 +272,12 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   sensitivity: 25
-  movementSpeed: 10
+  movementSpeed: 6
   jumpForce: 0
   playerLayer:
     serializedVersion: 2
     m_Bits: 64
+  rampUpDownSpeed: 6
 --- !u!54 &4651963927601381306
 Rigidbody:
   m_ObjectHideFlags: 0

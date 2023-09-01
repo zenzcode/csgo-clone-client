@@ -15,10 +15,9 @@ using UnityEngine.InputSystem;
 
 namespace Player.Game
 {
+    [DisallowMultipleComponent]
     public class PlayerController : MonoBehaviour
     {
-        private const float MAX_COLLIDE_DISTANCE = 0.1f;
-
         //TOOD: Move sensitivity to settings class
         [SerializeField] private float sensitivity = 10;
 
@@ -68,6 +67,17 @@ namespace Player.Game
         private bool _hasTargetPosition = false;
 
         private Animator _animator;
+
+        #region Simulation
+        #region Velocity Interpolation
+        private bool _reachedTargetVelocity = false;
+        private float _targetVelocity = 0;
+        [Header("Simulation Settings")]
+        [Space(10)]
+        [Header("Velocity Settings")]
+        [SerializeField] private float rampUpDownSpeed = 4;
+        #endregion Velocity Interpolation
+        #endregion Simulation
 
         private void Awake()
         {
@@ -444,20 +454,74 @@ namespace Player.Game
             ModelParent.transform.Rotate(new Vector3(0, deltaYaw, 0), Space.Self);
 
             _targetPosition = tickResult.ActualEndPosition;
+
             //Todo: Check Slowwalk
             Vector3 moveDirection = Vector3.Normalize(_targetPosition - Owner.transform.position);
-            float directionDotProduct = Vector3.Dot(ModelParent.transform.forward, moveDirection);
 
-            _animator.SetFloat(Statics.VelocityAnimationParamter, directionDotProduct > 0 ? 1 : -1);
+            float forwardDirectionDotProduct = Vector3.Dot(ModelParent.transform.forward, moveDirection);
+            float rightDirectionDotProduct = Vector3.Dot(ModelParent.transform.right, moveDirection);
+
+            _targetVelocity = forwardDirectionDotProduct > 0 ? 1f : -1f;
+
+            if(Mathf.Approximately(forwardDirectionDotProduct, 0))
+            {
+                _targetVelocity = 0;
+            }
+
+            float currentVelocityValue = _animator.GetFloat(Statics.VelocityAnimationParamter);
+
+            if (Mathf.Approximately(_targetVelocity, currentVelocityValue))
+            {
+                _animator.SetFloat(Statics.VelocityAnimationParamter, _targetVelocity);
+                _reachedTargetVelocity = true;
+            }
+
+            if (!_reachedTargetVelocity)
+            {
+                float newVelocityValue = 0;
+                if (_targetVelocity < 0)
+                {
+                    newVelocityValue = GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity));
+                }
+                else if(_targetVelocity > 0)
+                {
+                    newVelocityValue = GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity));
+                }
+                else if(_targetVelocity == 0)
+                {
+                    newVelocityValue = Mathf.Sign(currentVelocityValue) > 0 ? GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, -1)
+                        : GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, 1);
+                }
+
+                Debug.Log(newVelocityValue);
+
+
+                _animator.SetFloat(Statics.VelocityAnimationParamter, newVelocityValue);
+            }
+
+           // _animator.SetFloat(Statics.DirectionAnimationParamter, rightDirectionDotProduct >= 0 ? 1 : -1);
 
             _hasTargetPosition = true;
 
             if (Vector3.Distance(Owner.transform.position, _targetPosition) <= Statics.MinPosDelta)
             {
-                _animator.SetFloat(Statics.VelocityAnimationParamter, 0);
+                _reachedTargetVelocity = false;
+                _targetVelocity = 0;
                 _animator.SetFloat(Statics.DirectionAnimationParamter, 0);
                 return;
             }
         }
+
+        #region Velocity
+        private float GetMaxNewValue(float currentVelocityValue, float deltaTime, float sign)
+        {
+            return Mathf.Max((currentVelocityValue + (sign * deltaTime * rampUpDownSpeed)), _targetVelocity);
+        }
+
+        private float GetMinNewValue(float currentVelocityValue, float deltaTime, float sign)
+        {
+            return Mathf.Min((currentVelocityValue + (sign * deltaTime * rampUpDownSpeed)), _targetVelocity);
+        }
+        #endregion Velocity
     }
 }
