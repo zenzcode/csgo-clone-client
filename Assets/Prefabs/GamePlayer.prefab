@@ -1811,11 +1811,15 @@ PrefabInstance:
     - target: {fileID: 9500000, guid: 2c56a83c3431ae248a78a389fa783ea8, type: 3}
       propertyPath: m_Avatar
       value: 
-      objectReference: {fileID: 9000000, guid: 21dbcadd0773e834bb24f60c75543642, type: 3}
+      objectReference: {fileID: 9000000, guid: 2c56a83c3431ae248a78a389fa783ea8, type: 3}
     - target: {fileID: 9500000, guid: 2c56a83c3431ae248a78a389fa783ea8, type: 3}
       propertyPath: m_Controller
       value: 
-      objectReference: {fileID: 9100000, guid: c87df42c5a78c9940a93f248ce5b57e8, type: 2}
+      objectReference: {fileID: 9100000, guid: 3b4fc9ab64dbe11488c7f1812ff06610, type: 2}
+    - target: {fileID: 9500000, guid: 2c56a83c3431ae248a78a389fa783ea8, type: 3}
+      propertyPath: m_ApplyRootMotion
+      value: 0
+      objectReference: {fileID: 0}
     m_RemovedComponents: []
   m_SourcePrefab: {fileID: 100100000, guid: 2c56a83c3431ae248a78a389fa783ea8, type: 3}
 --- !u!1 &3521592537127179248 stripped

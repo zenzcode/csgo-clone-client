@@ -9,6 +9,7 @@ using Managers;
 using Misc;
 using Player.Game.Movement;
 using Riptide;
+using Unity.VisualScripting.FullSerializer.Internal.Converters;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
@@ -66,6 +67,8 @@ namespace Player.Game
 
         private bool _hasTargetPosition = false;
 
+        private Animator _animator;
+
         private void Awake()
         {
             _rigidbody = GetComponent<Rigidbody>();
@@ -89,6 +92,13 @@ namespace Player.Game
                 Cursor.lockState = CursorLockMode.Locked;
                 Cursor.visible = false;
             }
+
+            if(!PlayerModel)
+            {
+                return;
+            }
+
+            _animator = PlayerModel.GetComponent<Animator>();
         }
 
         private void OnEnable()
@@ -122,6 +132,7 @@ namespace Player.Game
             {
                 Owner.transform.position = _targetPosition;
                 _hasTargetPosition = false;
+                _animator.SetFloat(Statics.VelocityAnimationParamter, 1);
                 return;
             }
 
@@ -434,6 +445,8 @@ namespace Player.Game
             ModelParent.transform.Rotate(new Vector3(0, deltaYaw, 0), Space.Self);
 
             _targetPosition = tickResult.ActualEndPosition;
+            //Todo: Check Slowwalk
+            _animator.SetFloat(Statics.VelocityAnimationParamter, 1);
             _hasTargetPosition = true;
         }
     }
