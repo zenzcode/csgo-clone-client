@@ -1,3 +1,4 @@
+using Enums;
 using Riptide;
 using UnityEngine;
 
@@ -20,6 +21,7 @@ namespace Player.Game.Movement
         public float DeltaTime;
         public float Sensitivity;
         public int Input;
+        public PlayerMovementState PlayerMovementState;
 
         public void Deserialize(Message message)
         {
@@ -38,6 +40,7 @@ namespace Player.Game.Movement
             DeltaTime = message.GetFloat();
             Sensitivity = message.GetFloat();
             Input = message.GetInt();
+            PlayerMovementState = (PlayerMovementState)message.GetInt();
         }
 
         public void Serialize(Message message)

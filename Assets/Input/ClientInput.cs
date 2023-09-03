@@ -53,6 +53,24 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
                     ""processors"": """",
                     ""interactions"": """",
                     ""initialStateCheck"": false
+                },
+                {
+                    ""name"": ""Crouch"",
+                    ""type"": ""Value"",
+                    ""id"": ""1b110ca3-7a5e-42cb-92db-9b56eded268a"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
+                },
+                {
+                    ""name"": ""SlowWalk"",
+                    ""type"": ""Value"",
+                    ""id"": ""802e0f8f-898a-44f5-ac90-579986866031"",
+                    ""expectedControlType"": ""Button"",
+                    ""processors"": """",
+                    ""interactions"": """",
+                    ""initialStateCheck"": true
                 }
             ],
             ""bindings"": [
@@ -275,6 +293,28 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
                     ""action"": ""Fire"",
                     ""isComposite"": false,
                     ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""1bd3f9ed-1f33-4ffa-ae83-50f6a95d6cb0"",
+                    ""path"": ""<Keyboard>/ctrl"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""Crouch"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
+                },
+                {
+                    ""name"": """",
+                    ""id"": ""52cd2f5f-9832-470b-a9e3-6189e5af60f4"",
+                    ""path"": ""<Keyboard>/shift"",
+                    ""interactions"": """",
+                    ""processors"": """",
+                    ""groups"": ""Keyboard&Mouse"",
+                    ""action"": ""SlowWalk"",
+                    ""isComposite"": false,
+                    ""isPartOfComposite"": false
                 }
             ]
         }
@@ -347,6 +387,8 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
         m_Player_Move = m_Player.FindAction("Move", throwIfNotFound: true);
         m_Player_Look = m_Player.FindAction("Look", throwIfNotFound: true);
         m_Player_Fire = m_Player.FindAction("Fire", throwIfNotFound: true);
+        m_Player_Crouch = m_Player.FindAction("Crouch", throwIfNotFound: true);
+        m_Player_SlowWalk = m_Player.FindAction("SlowWalk", throwIfNotFound: true);
     }
 
     public void Dispose()
@@ -411,6 +453,8 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
     private readonly InputAction m_Player_Move;
     private readonly InputAction m_Player_Look;
     private readonly InputAction m_Player_Fire;
+    private readonly InputAction m_Player_Crouch;
+    private readonly InputAction m_Player_SlowWalk;
     public struct PlayerActions
     {
         private @ClientInput m_Wrapper;
@@ -418,6 +462,8 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
         public InputAction @Move => m_Wrapper.m_Player_Move;
         public InputAction @Look => m_Wrapper.m_Player_Look;
         public InputAction @Fire => m_Wrapper.m_Player_Fire;
+        public InputAction @Crouch => m_Wrapper.m_Player_Crouch;
+        public InputAction @SlowWalk => m_Wrapper.m_Player_SlowWalk;
         public InputActionMap Get() { return m_Wrapper.m_Player; }
         public void Enable() { Get().Enable(); }
         public void Disable() { Get().Disable(); }
@@ -436,6 +482,12 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
             @Fire.started += instance.OnFire;
             @Fire.performed += instance.OnFire;
             @Fire.canceled += instance.OnFire;
+            @Crouch.started += instance.OnCrouch;
+            @Crouch.performed += instance.OnCrouch;
+            @Crouch.canceled += instance.OnCrouch;
+            @SlowWalk.started += instance.OnSlowWalk;
+            @SlowWalk.performed += instance.OnSlowWalk;
+            @SlowWalk.canceled += instance.OnSlowWalk;
         }
 
         private void UnregisterCallbacks(IPlayerActions instance)
@@ -449,6 +501,12 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
             @Fire.started -= instance.OnFire;
             @Fire.performed -= instance.OnFire;
             @Fire.canceled -= instance.OnFire;
+            @Crouch.started -= instance.OnCrouch;
+            @Crouch.performed -= instance.OnCrouch;
+            @Crouch.canceled -= instance.OnCrouch;
+            @SlowWalk.started -= instance.OnSlowWalk;
+            @SlowWalk.performed -= instance.OnSlowWalk;
+            @SlowWalk.canceled -= instance.OnSlowWalk;
         }
 
         public void RemoveCallbacks(IPlayerActions instance)
@@ -516,5 +574,7 @@ public partial class @ClientInput: IInputActionCollection2, IDisposable
         void OnMove(InputAction.CallbackContext context);
         void OnLook(InputAction.CallbackContext context);
         void OnFire(InputAction.CallbackContext context);
+        void OnCrouch(InputAction.CallbackContext context);
+        void OnSlowWalk(InputAction.CallbackContext context);
     }
 }

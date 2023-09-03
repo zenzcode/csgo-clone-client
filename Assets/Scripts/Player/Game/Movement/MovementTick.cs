@@ -20,6 +20,8 @@ namespace Player.Game.Movement
         public float MouseDeltaY;
         public float DeltaTime;
         public float Sensitivity;
+        public bool CrouchDown;
+        public bool SlowWalkDown;
 
         public void Deserialize(Message message)
         {
@@ -42,6 +44,8 @@ namespace Player.Game.Movement
             message.AddFloat(MouseDeltaY);
             message.AddFloat(DeltaTime);
             message.AddFloat(Sensitivity);
+            message.AddBool(CrouchDown);
+            message.AddBool(SlowWalkDown);
         }
     }
 }

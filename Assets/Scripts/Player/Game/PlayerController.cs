@@ -18,10 +18,15 @@ namespace Player.Game
     [DisallowMultipleComponent]
     public class PlayerController : MonoBehaviour
     {
+        #region Player Controller Variables
         //TOOD: Move sensitivity to settings class
         [SerializeField] private float sensitivity = 10;
 
-        [SerializeField] private float movementSpeed = 15;
+        [SerializeField] private float defaultMovementSpeed = 6;
+
+        [SerializeField] private float crouchMovementSpeed = 3;
+
+        [SerializeField] private float slowWalkMovementSpeed = 3;
 
         [SerializeField] private float jumpForce = 10;
 
@@ -35,6 +40,10 @@ namespace Player.Game
         private InputAction _lookAction;
 
         private InputAction _moveAction;
+
+        private InputAction _crouchAction;
+
+        private InputAction _slowWalkAction;
 
         private float _yaw, _pitch;
 
@@ -68,6 +77,12 @@ namespace Player.Game
 
         private Animator _animator;
 
+        private PlayerMovementState _playerMovementState = PlayerMovementState.Default;
+
+        private float _movementSpeed = 0;
+
+        #endregion Player Controller Variables
+
         #region Simulation
         #region Velocity Interpolation
         private bool _reachedTargetVelocity = false;
@@ -86,8 +101,11 @@ namespace Player.Game
         #endregion Direction Interpolation
         #endregion Simulation
 
+        #region Unity Functions
+
         private void Awake()
         {
+            _movementSpeed = defaultMovementSpeed;
             _rigidbody = GetComponent<Rigidbody>();
             _capsuleCollider = GetComponent<CapsuleCollider>();
             _unacknowledgedTicks = new List<MovementTick>();
@@ -96,10 +114,18 @@ namespace Player.Game
             _moveAction.Enable();
             _lookAction = _input.Player.Look;
             _lookAction.Enable();
+            _crouchAction = _input.Player.Crouch;
+            _crouchAction.Enable();
+            _slowWalkAction = _input.Player.SlowWalk;
+            _slowWalkAction.Enable();
 
             _lookAction.performed += PlayerLook;
             _moveAction.canceled += PlayerMoveStop;
             _moveAction.performed += PlayerMove;
+            _crouchAction.started += PlayerCrouchStart;
+            _crouchAction.canceled += PlayerCrouchEnd;
+            _slowWalkAction.started += PlayerSlowWalkStart;
+            _slowWalkAction.canceled += PlayerSlowWalkEnd;
         }
 
         private void Start()
@@ -137,6 +163,7 @@ namespace Player.Game
 
             if(Owner.IsLocal)
             {
+                UpdateMovementType();
                 return;
             }
 
@@ -171,7 +198,9 @@ namespace Player.Game
                 SendNewMovementTick();
             }
         }
+        #endregion Unity Functions
 
+        #region Movement 
         private void LookAround(float deltaTime) 
         {
             if(new Vector2(_mouseDeltaX, _mouseDeltaY).IsNearlyZero())
@@ -213,7 +242,7 @@ namespace Player.Game
 
             Vector3 moveVector = (ModelParent.transform.forward * _lastMoveNormalized.y + PlayerCam.transform.right * _lastMoveNormalized.x);
 
-            Vector3 targetPosition = Owner.transform.position + moveVector * movementSpeed * deltaTime;
+            Vector3 targetPosition = Owner.transform.position + moveVector * _movementSpeed * deltaTime;
 
             Array.Clear(collisions, 0, collisions.Length);
 
@@ -241,6 +270,29 @@ namespace Player.Game
 
             Owner.transform.position = targetPosition;
         }
+
+        private void UpdateMovementType()
+        {
+            if(_crouchAction.WasPressedThisFrame())
+            {
+                _movementSpeed = crouchMovementSpeed;
+                _playerMovementState = PlayerMovementState.Crouching;
+            }
+            else if(_slowWalkAction.WasPressedThisFrame())
+            {
+                _movementSpeed = slowWalkMovementSpeed;
+                _playerMovementState = PlayerMovementState.SlowWalk;
+            }
+            else
+            {
+                _movementSpeed = defaultMovementSpeed;
+                _playerMovementState = PlayerMovementState.Default;
+            }
+        }
+
+        #endregion Movement
+
+        #region Networking
 
         private void SendNewMovementTick()
         {
@@ -319,6 +371,10 @@ namespace Player.Game
             return result;
         }
 
+        #endregion Networking
+
+        #region Movement Helper Functions
+
         private void PlayerLook(InputAction.CallbackContext callbackContext)
         {
             var delta = callbackContext.ReadValue<Vector2>();
@@ -336,6 +392,48 @@ namespace Player.Game
         {
             _lastMoveNormalized = Vector2.zero;
         }
+
+        private void PlayerCrouchStart(InputAction.CallbackContext callbackContext)
+        {
+            //dont set to crouch again
+            if(_playerMovementState != PlayerMovementState.Crouching)
+            {
+                return;
+            }
+
+            _playerMovementState = PlayerMovementState.Crouching;
+        }
+
+        private void PlayerCrouchEnd(InputAction.CallbackContext callbackContext)
+        {
+            if (_slowWalkAction.IsPressed())
+            {
+                _playerMovementState = PlayerMovementState.SlowWalk;
+            }
+            else
+            {
+                _playerMovementState = PlayerMovementState.Default; 
+            }
+        }
+
+        private void PlayerSlowWalkStart(InputAction.CallbackContext callbackContext)
+        {
+            if(_playerMovementState != PlayerMovementState.Default)
+            {
+                return;
+            }
+
+            _playerMovementState = PlayerMovementState.SlowWalk;
+        }
+
+        private void PlayerSlowWalkEnd(InputAction.CallbackContext callbackContext)
+        {
+            _playerMovementState = PlayerMovementState.Default;
+        }
+
+        #endregion Movement Helper Functions
+
+        #region Reconciliation and Interpolation
 
         [MessageHandler((ushort)ServerToClientMessages.TickResult)]
         private static void TickResultReceived(Message message)
@@ -409,7 +507,7 @@ namespace Player.Game
                 lastTickEndPitch = tick.EndPitch = newYawPitch.y;
                 _unacknowledgedTicks[index] = tick;
             }
-
+            Debug.Log("RECALCULATE ROT");
             SetPlayerRotation(new Vector2(lastTickStartYaw, lastTickStartPitch), lastTickEndYaw, lastTickEndPitch, lastTickDeltaTime);
         }
 
@@ -434,7 +532,7 @@ namespace Player.Game
 
                 Vector3 moveVector = (modelForward * inputThisTick.y + camRight * inputThisTick.x);
 
-                lastTickEndPosition = Vector3.Lerp(lastTickEndPosition, lastTickEndPosition + moveVector * movementSpeed, tick.DeltaTime);
+                lastTickEndPosition = Vector3.Lerp(lastTickEndPosition, lastTickEndPosition + moveVector * _movementSpeed, tick.DeltaTime);
                 tick.EndPosition = lastTickEndPosition;
                 _unacknowledgedTicks[index] = tick;
 
@@ -511,6 +609,11 @@ namespace Player.Game
 
             _targetDirection = inputTick.x;
 
+            if (inputTick.y < 0)
+            {
+                _targetDirection *= -1;
+            }
+
             if (Mathf.Approximately(_targetDirection, currentDirectionValue))
             {
                 _reachedTargetDirection = true;
@@ -518,11 +621,6 @@ namespace Player.Game
             else
             {
                 _reachedTargetDirection = false;
-            }
-
-            if (inputTick.y < 0)
-            {
-                _targetDirection *= -1;
             }
 
             if (!_reachedTargetDirection)
@@ -555,6 +653,8 @@ namespace Player.Game
                 _targetDirection = 0;
             }
         }
+
+        #endregion Reconciliation and Interpolation
 
         #region Shared
         private float GetMaxNewValue(float currentValue, float deltaTime, float sign, float rampUpSpeed, float target)
