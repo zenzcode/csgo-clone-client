@@ -37,7 +37,7 @@ namespace Player.Game
         private InputAction _moveAction;
 
         private float _yaw, _pitch;
-        
+
         private List<MovementTick> _unacknowledgedTicks;
 
         public Camera PlayerCam { private get; set; }
@@ -75,8 +75,15 @@ namespace Player.Game
         [Header("Simulation Settings")]
         [Space(10)]
         [Header("Velocity Settings")]
-        [SerializeField] private float rampUpDownSpeed = 4;
+        [SerializeField] private float velocityRampUpDownSpeed = 4;
         #endregion Velocity Interpolation
+        #region Direction Interpolation
+        private bool _reachedTargetDirection = false;
+        private float _targetDirection = 0;
+        [Space(10)]
+        [Header("Direction Settings")]
+        [SerializeField] private float directionRampUpDownSpeed = 4;
+        #endregion Direction Interpolation
         #endregion Simulation
 
         private void Awake()
@@ -459,7 +466,6 @@ namespace Player.Game
             Vector3 moveDirection = Vector3.Normalize(_targetPosition - Owner.transform.position);
 
             float forwardDirectionDotProduct = Vector3.Dot(ModelParent.transform.forward, moveDirection);
-            float rightDirectionDotProduct = Vector3.Dot(ModelParent.transform.right, moveDirection);
 
             _targetVelocity = forwardDirectionDotProduct > 0 ? 1f : -1f;
 
@@ -472,8 +478,11 @@ namespace Player.Game
 
             if (Mathf.Approximately(_targetVelocity, currentVelocityValue))
             {
-                _animator.SetFloat(Statics.VelocityAnimationParamter, _targetVelocity);
                 _reachedTargetVelocity = true;
+            }
+            else
+            {
+                _reachedTargetVelocity = false;
             }
 
             if (!_reachedTargetVelocity)
@@ -481,25 +490,60 @@ namespace Player.Game
                 float newVelocityValue = 0;
                 if (_targetVelocity < 0)
                 {
-                    newVelocityValue = GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity));
+                    newVelocityValue = GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity), velocityRampUpDownSpeed, _targetVelocity);
                 }
                 else if(_targetVelocity > 0)
                 {
-                    newVelocityValue = GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity));
+                    newVelocityValue = GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity), velocityRampUpDownSpeed, _targetVelocity);
                 }
                 else if(_targetVelocity == 0)
                 {
-                    newVelocityValue = Mathf.Sign(currentVelocityValue) > 0 ? GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, -1)
-                        : GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, 1);
+                    newVelocityValue = Mathf.Sign(currentVelocityValue) > 0 ? GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, -1, velocityRampUpDownSpeed, _targetVelocity)
+                        : GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, 1, velocityRampUpDownSpeed, _targetVelocity);
                 }
-
-                Debug.Log(newVelocityValue);
-
 
                 _animator.SetFloat(Statics.VelocityAnimationParamter, newVelocityValue);
             }
 
-           // _animator.SetFloat(Statics.DirectionAnimationParamter, rightDirectionDotProduct >= 0 ? 1 : -1);
+            float currentDirectionValue = _animator.GetFloat(Statics.DirectionAnimationParamter);
+
+            Vector2 inputTick = GetVectorFromInput(tickResult.Input);
+
+            _targetDirection = inputTick.x;
+
+            if (Mathf.Approximately(_targetDirection, currentDirectionValue))
+            {
+                _reachedTargetDirection = true;
+            }
+            else
+            {
+                _reachedTargetDirection = false;
+            }
+
+            if (inputTick.y < 0)
+            {
+                _targetDirection *= -1;
+            }
+
+            if (!_reachedTargetDirection)
+            {
+                float newDirectionValue = 0;
+                if (_targetDirection < 0)
+                {
+                    newDirectionValue = GetMaxNewValue(currentDirectionValue, tickResult.DeltaTime, Mathf.Sign(_targetDirection), directionRampUpDownSpeed, _targetDirection);
+                }
+                else if (_targetDirection > 0)
+                {
+                    newDirectionValue = GetMinNewValue(currentDirectionValue, tickResult.DeltaTime, Mathf.Sign(_targetDirection), directionRampUpDownSpeed, _targetDirection);
+                }
+                else if (_targetDirection == 0)
+                {
+                    newDirectionValue = Mathf.Sign(currentDirectionValue) > 0 ? GetMaxNewValue(currentDirectionValue, tickResult.DeltaTime, -1, directionRampUpDownSpeed, _targetDirection)
+                        : GetMinNewValue(currentDirectionValue, tickResult.DeltaTime, 1, directionRampUpDownSpeed, _targetDirection);
+                }
+
+                _animator.SetFloat(Statics.DirectionAnimationParamter, newDirectionValue);
+            }
 
             _hasTargetPosition = true;
 
@@ -507,20 +551,20 @@ namespace Player.Game
             {
                 _reachedTargetVelocity = false;
                 _targetVelocity = 0;
-                _animator.SetFloat(Statics.DirectionAnimationParamter, 0);
-                return;
+                _reachedTargetDirection = false;
+                _targetDirection = 0;
             }
         }
 
-        #region Velocity
-        private float GetMaxNewValue(float currentVelocityValue, float deltaTime, float sign)
+        #region Shared
+        private float GetMaxNewValue(float currentValue, float deltaTime, float sign, float rampUpSpeed, float target)
         {
-            return Mathf.Max((currentVelocityValue + (sign * deltaTime * rampUpDownSpeed)), _targetVelocity);
+            return Mathf.Max((currentValue + (sign * deltaTime * rampUpSpeed)), target);
         }
 
-        private float GetMinNewValue(float currentVelocityValue, float deltaTime, float sign)
+        private float GetMinNewValue(float currentValue, float deltaTime, float sign, float rampUpSpeed, float target)
         {
-            return Mathf.Min((currentVelocityValue + (sign * deltaTime * rampUpDownSpeed)), _targetVelocity);
+            return Mathf.Min((currentValue + (sign * deltaTime * rampUpSpeed)), target);
         }
         #endregion Velocity
     }
