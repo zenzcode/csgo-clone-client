@@ -16,5 +16,6 @@ namespace Misc
 
         public static int VelocityAnimationParamter = Animator.StringToHash("Velocity");
         public static int DirectionAnimationParamter = Animator.StringToHash("Direction");
+        public static int CrouchAnimationParamter = Animator.StringToHash("Crouch");
     }
 }

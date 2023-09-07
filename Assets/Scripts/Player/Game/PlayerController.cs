@@ -163,7 +163,6 @@ namespace Player.Game
 
             if(Owner.IsLocal)
             {
-                UpdateMovementType();
                 return;
             }
 
@@ -271,25 +270,6 @@ namespace Player.Game
             Owner.transform.position = targetPosition;
         }
 
-        private void UpdateMovementType()
-        {
-            if(_crouchAction.WasPressedThisFrame())
-            {
-                _movementSpeed = crouchMovementSpeed;
-                _playerMovementState = PlayerMovementState.Crouching;
-            }
-            else if(_slowWalkAction.WasPressedThisFrame())
-            {
-                _movementSpeed = slowWalkMovementSpeed;
-                _playerMovementState = PlayerMovementState.SlowWalk;
-            }
-            else
-            {
-                _movementSpeed = defaultMovementSpeed;
-                _playerMovementState = PlayerMovementState.Default;
-            }
-        }
-
         #endregion Movement
 
         #region Networking
@@ -310,7 +290,9 @@ namespace Player.Game
                 MouseDeltaX = _mouseDeltaX,
                 MouseDeltaY = _mouseDeltaY,
                 DeltaTime = Time.deltaTime,
-                Sensitivity = sensitivity
+                Sensitivity = sensitivity,
+                CrouchDown = _playerMovementState == PlayerMovementState.Crouching,
+                SlowWalkDown = _playerMovementState == PlayerMovementState.SlowWalk
             };
 
             _unacknowledgedTicks.Add(movementTick);
@@ -396,12 +378,13 @@ namespace Player.Game
         private void PlayerCrouchStart(InputAction.CallbackContext callbackContext)
         {
             //dont set to crouch again
-            if(_playerMovementState != PlayerMovementState.Crouching)
+            if(_playerMovementState == PlayerMovementState.Crouching)
             {
                 return;
             }
 
             _playerMovementState = PlayerMovementState.Crouching;
+            _movementSpeed = crouchMovementSpeed;
         }
 
         private void PlayerCrouchEnd(InputAction.CallbackContext callbackContext)
@@ -409,10 +392,12 @@ namespace Player.Game
             if (_slowWalkAction.IsPressed())
             {
                 _playerMovementState = PlayerMovementState.SlowWalk;
+                _movementSpeed = slowWalkMovementSpeed;
             }
             else
             {
-                _playerMovementState = PlayerMovementState.Default; 
+                _playerMovementState = PlayerMovementState.Default;
+                _movementSpeed = defaultMovementSpeed;
             }
         }
 
@@ -424,11 +409,13 @@ namespace Player.Game
             }
 
             _playerMovementState = PlayerMovementState.SlowWalk;
+            _movementSpeed = slowWalkMovementSpeed;
         }
 
         private void PlayerSlowWalkEnd(InputAction.CallbackContext callbackContext)
         {
             _playerMovementState = PlayerMovementState.Default;
+            _movementSpeed = defaultMovementSpeed;
         }
 
         #endregion Movement Helper Functions
@@ -461,6 +448,8 @@ namespace Player.Game
                 //if interp didnt finish, snap to position
                 Owner.transform.position = tickResult.ActualStartPosition;
                 //INTERP
+                _movementSpeed = tickResult.PlayerMovementState == PlayerMovementState.Crouching ? crouchMovementSpeed
+                    : tickResult.PlayerMovementState == PlayerMovementState.SlowWalk ? slowWalkMovementSpeed : defaultMovementSpeed;
                 SimulateTick(tickResult);
             }
         }
@@ -567,7 +556,19 @@ namespace Player.Game
 
             _targetVelocity = forwardDirectionDotProduct > 0 ? 1f : -1f;
 
-            if(Mathf.Approximately(forwardDirectionDotProduct, 0))
+            if (tickResult.PlayerMovementState == PlayerMovementState.Crouching)
+            {
+                _targetVelocity = Mathf.Sign(_targetVelocity) * 0.5f;
+            }
+            else if(tickResult.PlayerMovementState == PlayerMovementState.SlowWalk)
+            {
+                _targetVelocity = Mathf.Sign(_targetVelocity) * 0.5f;
+            }
+
+            _animator.SetBool(Statics.CrouchAnimationParamter, tickResult.PlayerMovementState == PlayerMovementState.Crouching);
+
+
+            if (Mathf.Approximately(forwardDirectionDotProduct, 0))
             {
                 _targetVelocity = 0;
             }
