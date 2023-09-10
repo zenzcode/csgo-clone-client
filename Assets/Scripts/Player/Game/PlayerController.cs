@@ -75,7 +75,7 @@ namespace Player.Game
 
         private bool _hasTargetPosition = false;
 
-        private Animator _animator;
+        public Animator Animator { get; private set; }
 
         private PlayerMovementState _playerMovementState = PlayerMovementState.Default;
 
@@ -141,7 +141,7 @@ namespace Player.Game
                 return;
             }
 
-            _animator = PlayerModel.GetComponent<Animator>();
+            Animator = PlayerModel.GetComponent<Animator>();
         }
 
         private void OnEnable()
@@ -236,12 +236,16 @@ namespace Player.Game
 
             if(_lastMoveNormalized.IsNearlyZero())
             {
+                _targetVelocity = 0;
+                TryReachTargetVelocity(deltaTime);
                 return;
             }
 
             Vector3 moveVector = (ModelParent.transform.forward * _lastMoveNormalized.y + PlayerCam.transform.right * _lastMoveNormalized.x);
 
             Vector3 targetPosition = Owner.transform.position + moveVector * _movementSpeed * deltaTime;
+
+            _targetVelocity = _lastMoveNormalized.y;
 
             Array.Clear(collisions, 0, collisions.Length);
 
@@ -266,6 +270,12 @@ namespace Player.Game
                     return;
                 }
             }
+            else
+            {
+                _targetVelocity = 0;
+            }
+
+            TryReachTargetVelocity(deltaTime);
 
             Owner.transform.position = targetPosition;
         }
@@ -565,7 +575,7 @@ namespace Player.Game
                 _targetVelocity = Mathf.Sign(_targetVelocity) * 0.5f;
             }
 
-            _animator.SetBool(Statics.CrouchAnimationParamter, tickResult.PlayerMovementState == PlayerMovementState.Crouching);
+            Animator.SetBool(Statics.CrouchAnimationParamter, tickResult.PlayerMovementState == PlayerMovementState.Crouching);
 
 
             if (Mathf.Approximately(forwardDirectionDotProduct, 0))
@@ -573,38 +583,9 @@ namespace Player.Game
                 _targetVelocity = 0;
             }
 
-            float currentVelocityValue = _animator.GetFloat(Statics.VelocityAnimationParamter);
+            TryReachTargetVelocity(tickResult.DeltaTime);
 
-            if (Mathf.Approximately(_targetVelocity, currentVelocityValue))
-            {
-                _reachedTargetVelocity = true;
-            }
-            else
-            {
-                _reachedTargetVelocity = false;
-            }
-
-            if (!_reachedTargetVelocity)
-            {
-                float newVelocityValue = 0;
-                if (_targetVelocity < 0)
-                {
-                    newVelocityValue = GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity), velocityRampUpDownSpeed, _targetVelocity);
-                }
-                else if(_targetVelocity > 0)
-                {
-                    newVelocityValue = GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, Mathf.Sign(_targetVelocity), velocityRampUpDownSpeed, _targetVelocity);
-                }
-                else if(_targetVelocity == 0)
-                {
-                    newVelocityValue = Mathf.Sign(currentVelocityValue) > 0 ? GetMaxNewValue(currentVelocityValue, tickResult.DeltaTime, -1, velocityRampUpDownSpeed, _targetVelocity)
-                        : GetMinNewValue(currentVelocityValue, tickResult.DeltaTime, 1, velocityRampUpDownSpeed, _targetVelocity);
-                }
-
-                _animator.SetFloat(Statics.VelocityAnimationParamter, newVelocityValue);
-            }
-
-            float currentDirectionValue = _animator.GetFloat(Statics.DirectionAnimationParamter);
+            float currentDirectionValue = Animator.GetFloat(Statics.DirectionAnimationParamter);
 
             Vector2 inputTick = GetVectorFromInput(tickResult.Input);
 
@@ -641,7 +622,7 @@ namespace Player.Game
                         : GetMinNewValue(currentDirectionValue, tickResult.DeltaTime, 1, directionRampUpDownSpeed, _targetDirection);
                 }
 
-                _animator.SetFloat(Statics.DirectionAnimationParamter, newDirectionValue);
+                Animator.SetFloat(Statics.DirectionAnimationParamter, newDirectionValue);
             }
 
             _hasTargetPosition = true;
@@ -666,6 +647,40 @@ namespace Player.Game
         private float GetMinNewValue(float currentValue, float deltaTime, float sign, float rampUpSpeed, float target)
         {
             return Mathf.Min((currentValue + (sign * deltaTime * rampUpSpeed)), target);
+        }
+
+        private void TryReachTargetVelocity(float deltaTime)
+        {
+            float currentVelocityValue = Animator.GetFloat(Statics.VelocityAnimationParamter);
+
+            if (Mathf.Approximately(_targetVelocity, currentVelocityValue))
+            {
+                _reachedTargetVelocity = true;
+            }
+            else
+            {
+                _reachedTargetVelocity = false;
+            }
+
+            if (!_reachedTargetVelocity)
+            {
+                float newVelocityValue = 0;
+                if (_targetVelocity < 0)
+                {
+                    newVelocityValue = GetMaxNewValue(currentVelocityValue, deltaTime, Mathf.Sign(_targetVelocity), velocityRampUpDownSpeed, _targetVelocity);
+                }
+                else if (_targetVelocity > 0)
+                {
+                    newVelocityValue = GetMinNewValue(currentVelocityValue, deltaTime, Mathf.Sign(_targetVelocity), velocityRampUpDownSpeed, _targetVelocity);
+                }
+                else if (_targetVelocity == 0)
+                {
+                    newVelocityValue = Mathf.Sign(currentVelocityValue) > 0 ? GetMaxNewValue(currentVelocityValue, deltaTime, -1, velocityRampUpDownSpeed, _targetVelocity)
+                        : GetMinNewValue(currentVelocityValue, deltaTime, 1, velocityRampUpDownSpeed, _targetVelocity);
+                }
+
+                Animator.SetFloat(Statics.VelocityAnimationParamter, newVelocityValue);
+            }
         }
         #endregion Velocity
     }

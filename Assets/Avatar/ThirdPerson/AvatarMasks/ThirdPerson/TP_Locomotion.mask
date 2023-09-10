@@ -7,7 +7,7 @@ AvatarMask:
   m_PrefabInstance: {fileID: 0}
   m_PrefabAsset: {fileID: 0}
   m_Name: TP_Locomotion
-  m_Mask: 01000000010000000100000001000000010000000000000000000000000000000000000000000000000000000000000000000000
+  m_Mask: 01000000010000000100000001000000010000000000000000000000000000000000000001000000010000000000000000000000
   m_Elements:
   - m_Path: 
     m_Weight: 1
@@ -18,9 +18,9 @@ AvatarMask:
   - m_Path: Armature/root/ik_foot_root
     m_Weight: 1
   - m_Path: Armature/root/ik_foot_root/ik_foot_l
-    m_Weight: 0
+    m_Weight: 1
   - m_Path: Armature/root/ik_foot_root/ik_foot_r
-    m_Weight: 0
+    m_Weight: 1
   - m_Path: Armature/root/ik_hand_root
     m_Weight: 0
   - m_Path: Armature/root/ik_hand_root/ik_hand_gun
@@ -32,11 +32,11 @@ AvatarMask:
   - m_Path: Armature/root/pelvis
     m_Weight: 1
   - m_Path: Armature/root/pelvis/spine_01
-    m_Weight: 0
+    m_Weight: 1
   - m_Path: Armature/root/pelvis/spine_01/spine_02
-    m_Weight: 0
+    m_Weight: 1
   - m_Path: Armature/root/pelvis/spine_01/spine_02/spine_03
-    m_Weight: 0
+    m_Weight: 1
   - m_Path: Armature/root/pelvis/spine_01/spine_02/spine_03/clavicle_l
     m_Weight: 0
   - m_Path: Armature/root/pelvis/spine_01/spine_02/spine_03/clavicle_l/upperarm_l
@@ -122,9 +122,9 @@ AvatarMask:
   - m_Path: Armature/root/pelvis/spine_01/spine_02/spine_03/clavicle_r/upperarm_r/upperarm_twist_01_r
     m_Weight: 0
   - m_Path: Armature/root/pelvis/spine_01/spine_02/spine_03/neck_01
-    m_Weight: 0
+    m_Weight: 1
   - m_Path: Armature/root/pelvis/spine_01/spine_02/spine_03/neck_01/head
-    m_Weight: 0
+    m_Weight: 1
   - m_Path: Armature/root/pelvis/thigh_l
     m_Weight: 1
   - m_Path: Armature/root/pelvis/thigh_l/calf_l
