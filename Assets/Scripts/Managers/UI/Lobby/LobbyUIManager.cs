@@ -131,7 +131,7 @@ namespace Managers.UI.Lobby
             if(timer == Timer.LobbyTimer)
             {
                 _clock.SetActive(true);
-                _clockText.SetText(GetTimeInFormat(startTime));
+                _clockText.SetText(Statics.GetTimeInFormat(startTime));
             }
         }
 
@@ -139,7 +139,7 @@ namespace Managers.UI.Lobby
         {
             if(timer == Timer.LobbyTimer)
             {
-                _clockText.SetText(GetTimeInFormat(remaining));
+                _clockText.SetText(Statics.GetTimeInFormat(remaining));
             }
         }
 
@@ -150,15 +150,6 @@ namespace Managers.UI.Lobby
                 _clockText.SetText("Loading...");
             }
         }
-
-        private string GetTimeInFormat(int seconds)
-        {
-            var minutes = (seconds / 60) % 60;
-            seconds %= 60;
-
-            return $"{minutes.ToString("D2")}:{seconds.ToString("D2")}";
-        }
-
 
         private void EventManager_LeaderChanged(ushort newPlayerId)
         {
